@@ -77,6 +77,47 @@
           }
         </div>
 
+        <!-- Portal -->
+        <div class="form-group">
+          <label for="portal">Portal <span class="text-danger">*</span></label>
+          <app-select-dropdown
+            id="portal"
+            formControlName="portal_id"
+            [options]="portalOptions"
+            placeholder="-- Select Portal --"
+            (changed)="onPortalChange()">
+          </app-select-dropdown>
+          @if (portalLoading) {
+            <small class="hint-text">Loading portals...</small>
+          }
+          @if (portalError && !portalLoading) {
+            <small class="error-text">{{ portalError }}</small>
+          }
+          @if (broadcastForm.get('portal_id')?.touched && broadcastForm.get('portal_id')?.invalid) {
+            <small class="error-text">Please select a portal.</small>
+          }
+        </div>
+
+        <!-- User Type -->
+        <div class="form-group">
+          <label for="userType">User Type <span class="text-danger">*</span></label>
+          <app-select-dropdown
+            id="userType"
+            formControlName="user_type_id"
+            [options]="userTypeOptions"
+            placeholder="-- Select User Type --">
+          </app-select-dropdown>
+          @if (userTypesLoading) {
+            <small class="hint-text">Loading user types...</small>
+          }
+          @if (userTypesError && !userTypesLoading) {
+            <small class="error-text">{{ userTypesError }}</small>
+          }
+          @if (broadcastForm.get('user_type_id')?.touched && broadcastForm.get('user_type_id')?.invalid) {
+            <small class="error-text">Please select a user type.</small>
+          }
+        </div>
+
         <!-- Validity & Quick Presets -->
         <div class="form-row">
           <div class="form-group col">

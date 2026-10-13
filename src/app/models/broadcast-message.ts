@@ -3,6 +3,8 @@ export interface InsertBroadcastMessageRequest {
   message_body: string;
   validity_in_minutes?: number;
   is_active?: 'Y' | 'N';
+  portal_id?: number;
+  user_type_id?: string;
   photo1path?: string;
   photo2path?: string;
   videopath?: string;

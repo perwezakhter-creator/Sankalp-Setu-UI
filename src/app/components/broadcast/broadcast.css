@@ -160,6 +160,13 @@ textarea.form-control {
   display: block;
 }
 
+.hint-text {
+  color: #0284c7;
+  font-size: 11px;
+  margin-top: 4px;
+  display: block;
+}
+
 .form-row {
   display: flex;
   gap: 12px;

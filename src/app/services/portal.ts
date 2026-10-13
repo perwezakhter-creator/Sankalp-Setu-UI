@@ -34,6 +34,11 @@ export class PortalService {
   }
 
   
+  getPortals(): Observable<any> {
+    return this.http.post<any>(`${this.portalApiUrl}/GetPortals`, {});
+  }
+
+  
   getUserType(portalId: number | string): Observable<any> {
 
     const request = {
