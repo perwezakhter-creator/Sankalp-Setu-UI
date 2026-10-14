@@ -48,6 +48,21 @@ export class PortalService {
     return this.http.post<any>(`${this.portalApiUrl}/GetUserType`, request);
   }
 
+  
+  getMapUserPortal(portalId: number | string | null, userTypeId: number | string | null): Observable<any> {
+    const request: any = {};
+
+    if (portalId !== null && portalId !== undefined && portalId !== '') {
+      request.portal_id = Number(portalId);
+    }
+
+    if (userTypeId !== null && userTypeId !== undefined && userTypeId !== '') {
+      request.user_type_id = Number(userTypeId);
+    }
+
+    return this.http.post<any>(`${this.portalApiUrl}/GetMapUserPortal`, request);
+  }
+
  
   sendPortalOtp(payload: any): Observable<any> {
     return this.http.post<any>(`${this.applicantApiUrl}/GetApplicantDetails`, payload);

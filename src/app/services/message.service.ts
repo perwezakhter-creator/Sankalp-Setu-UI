@@ -11,6 +11,7 @@ import {
   GetInterestWiseMessageRequest,
   GetInterestWiseMessageResponse
 } from '../models/interest-message';
+import { SendToUserRequest, SendToUserResponse } from '../models/map-user-portal';
 
 @Injectable({
   providedIn: 'root'
@@ -18,10 +19,11 @@ import {
 export class MessageService {
   private http = inject(HttpClient);
   private apiUrl = '/api/Message';
+  private notificationApiUrl = '/api/Notifications';
   private masterApiUrl = '/api/Master';
 
   /**
-   * Calls SankalpAPI InsertBroadcastMessage endpoint to insert a broadcast record into SQL Server (tbl_BroadCastMessage).
+
    * @param request The broadcast message payload
    * @returns Observable of InsertBroadcastMessageResponse containing status, message, and generated bmsg_id
    */
@@ -40,7 +42,15 @@ export class MessageService {
   }
 
   /**
-   * Inserts an interest-wise targeted message into SQL Server (tbl_Message).
+
+   * @param request Payload with userId, title, body, optional imageUrl and data
+   */
+  sendToUser(request: SendToUserRequest): Observable<SendToUserResponse> {
+    return this.http.post<SendToUserResponse>(`${this.notificationApiUrl}/send-to-user`, request);
+  }
+
+  /**
+  
    * @param request Payload with interest_id, message_head, message_body, media links, etc.
    */
   insertInterestWiseMessage(request: InsertInterestWiseMessageRequest): Observable<InsertInterestWiseMessageResponse> {

@@ -31,6 +31,10 @@ export class Sidebar {
     this.router.navigate(['/broadcast']);
   }
 
+  openSendBroadcast() {
+    this.router.navigate(['/send-broadcast']);
+  }
+
   openInterestMessage() {
     this.router.navigate(['/interest-message']);
   }

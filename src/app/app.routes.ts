@@ -16,6 +16,7 @@ import { BlockComponent } from './components/block/block';
 import { GalleryAdmin } from './components/gallery-admin/gallery-admin';
 import { BroadcastComponent } from './components/broadcast/broadcast';
 import { InterestMessageComponent } from './components/interest-message/interest-message';
+import { SendBroadcastComponent } from './components/send-broadcast/send-broadcast';
 import { authGuard } from './guards/auth-guard';
 
 export const routes: Routes = [
@@ -105,6 +106,11 @@ export const routes: Routes = [
       {
         path: 'broadcast',
         component: BroadcastComponent
+      },
+
+      {
+        path: 'send-broadcast',
+        component: SendBroadcastComponent
       },
 
       {
