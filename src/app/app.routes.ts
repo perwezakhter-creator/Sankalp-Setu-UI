@@ -16,6 +16,7 @@ import { BlockComponent } from './components/block/block';
 import { GalleryAdmin } from './components/gallery-admin/gallery-admin';
 import { BroadcastComponent } from './components/broadcast/broadcast';
 import { InterestMessageComponent } from './components/interest-message/interest-message';
+import { GroupSubgroupComponent } from './components/group-subgroup/group-subgroup';
 import { SendBroadcastComponent } from './components/send-broadcast/send-broadcast';
 import { authGuard } from './guards/auth-guard';
 
@@ -116,6 +117,11 @@ export const routes: Routes = [
       {
         path: 'interest-message',
         component: InterestMessageComponent
+      },
+
+      {
+        path: 'groups-subgroups',
+        component: GroupSubgroupComponent
       }
 
     ]

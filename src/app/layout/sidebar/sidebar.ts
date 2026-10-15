@@ -27,6 +27,10 @@ export class Sidebar {
     this.router.navigate(['/dashboard']);
   }
 
+  openGroupManagement() {
+    this.router.navigate(['/groups-subgroups']);
+  }
+
   openBroadcast() {
     this.router.navigate(['/broadcast']);
   }
