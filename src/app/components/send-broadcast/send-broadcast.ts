@@ -34,13 +34,14 @@ export class SendBroadcastComponent implements OnInit {
   records: MapUserPortalData[] = [];
   hasSearched: boolean = false;
 
-  selectedUserPortalIds: Set<number> = new Set<number>();
+  selectedRecordKeys: Set<string> = new Set<string>();
 
   sendTitle: string = '';
   sendMessage: string = '';
   sending: boolean = false;
   sendSuccessMessage: string = '';
   sendError: string = '';
+  showBroadcastModal: boolean = false;
 
   @ViewChild('messageEditor') messageEditor?: ElementRef<HTMLDivElement>;
 
@@ -141,7 +142,7 @@ export class SendBroadcastComponent implements OnInit {
     this.portalService.getMapUserPortal(portalId, userTypeId).subscribe({
       next: (res: any) => {
         this.loading = false;
-        this.selectedUserPortalIds = new Set<number>();
+        this.selectedRecordKeys = new Set<string>();
         if (res && res.status && Array.isArray(res.data)) {
           this.records = res.data;
         } else {
@@ -153,45 +154,62 @@ export class SendBroadcastComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.records = [];
-        this.selectedUserPortalIds = new Set<number>();
+        this.selectedRecordKeys = new Set<string>();
         this.errorMessage = err?.error?.message || 'Failed to fetch records. Please try again.';
-        console.error('Failed to fetch mapped user-portal records:', err);
+        console.error('Failed to fetch registered user-portal records:', err);
         this.cdr.detectChanges();
       }
     });
   }
 
-  isSelected(userPortalId: number): boolean {
-    return this.selectedUserPortalIds.has(userPortalId);
+  isSelected(record: MapUserPortalData): boolean {
+    return this.selectedRecordKeys.has(this.getRecordKey(record));
   }
 
-  toggleSelection(userPortalId: number): void {
-    if (this.selectedUserPortalIds.has(userPortalId)) {
-      this.selectedUserPortalIds.delete(userPortalId);
+  toggleSelection(record: MapUserPortalData): void {
+    const recordKey = this.getRecordKey(record);
+    if (this.selectedRecordKeys.has(recordKey)) {
+      this.selectedRecordKeys.delete(recordKey);
     } else {
-      this.selectedUserPortalIds.add(userPortalId);
+      this.selectedRecordKeys.add(recordKey);
     }
     this.sendError = '';
   }
 
   get selectedCount(): number {
-    return this.selectedUserPortalIds.size;
+    return this.selectedRecordKeys.size;
   }
 
   get allSelected(): boolean {
-    return this.records.length > 0 && this.selectedUserPortalIds.size === this.records.length;
+    return this.records.length > 0 && this.records.every(record => this.isSelected(record));
   }
 
   toggleAll(): void {
     if (this.allSelected) {
-      this.selectedUserPortalIds = new Set<number>();
+      this.selectedRecordKeys = new Set<string>();
     } else {
-      this.selectedUserPortalIds = new Set<number>(this.records.map(r => r.user_portal_id));
+      this.selectedRecordKeys = new Set<string>(this.records.map(record => this.getRecordKey(record)));
     }
     this.sendError = '';
   }
 
-  sendToUsers(): void {
+  openBroadcastModal(): void {
+    if (this.selectedCount === 0) {
+      return;
+    }
+
+    this.sendSuccessMessage = '';
+    this.sendError = '';
+    this.showBroadcastModal = true;
+  }
+
+  closeBroadcastModal(): void {
+    if (!this.sending) {
+      this.showBroadcastModal = false;
+    }
+  }
+
+  sendToUsers(): void {debugger
     this.sendSuccessMessage = '';
     this.sendError = '';
 
@@ -216,7 +234,7 @@ export class SendBroadcastComponent implements OnInit {
       return;
     }
 
-    const selectedRecords = this.records.filter(r => this.selectedUserPortalIds.has(r.user_portal_id));
+    const selectedRecords = this.records.filter(record => this.isSelected(record));
     if (selectedRecords.length === 0) {
       this.sendError = 'Please select at least one user from the grid below.';
       return;
@@ -282,7 +300,8 @@ export class SendBroadcastComponent implements OnInit {
             (skippedCount > 0 ? ` (${skippedCount} user(s) skipped - no mobile number.)` : '');
           this.sendTitle = '';
           this.clearEditor();
-          this.selectedUserPortalIds = new Set<number>();
+          this.selectedRecordKeys = new Set<string>();
+          this.showBroadcastModal = false;
         } else {
           const failedUsers = responses.filter(res => !res.success).length;
           this.sendError =
@@ -322,6 +341,14 @@ export class SendBroadcastComponent implements OnInit {
     if (this.messageEditor?.nativeElement) {
       this.messageEditor.nativeElement.innerHTML = '';
     }
+  }
+
+  private getRecordKey(record: MapUserPortalData): string {
+    if (record.user_portal_id !== null) {
+      return `mapping-${record.user_portal_id}`;
+    }
+
+    return `user-${record.userid ?? record.mobile ?? ''}`;
   }
 
   private decrypt(value: any): string {

@@ -26,10 +26,20 @@
     </div>
   }
 
+  @if (sendSuccessMessage) {
+    <div class="alert alert-success">
+      <span class="alert-icon">✓</span>
+      <div>
+        <strong>Success!</strong>
+        <p>{{ sendSuccessMessage }}</p>
+      </div>
+    </div>
+  }
+
   <div class="panel filter-panel">
     <div class="panel-header">
       <h3>Filter Records</h3>
-      <span class="panel-sub">Fetch mapped user-portal records from tbl_map_user_portal</span>
+      <span class="panel-sub">Fetch registered users and their matching portal mappings</span>
     </div>
 
     <div class="filter-row">
@@ -85,100 +95,10 @@
     </div>
   </div>
 
-  <div class="panel send-panel">
-    <div class="panel-header">
-      <h3>Send Broadcast to Selected Users</h3>
-      <span class="panel-sub">Enter the title and message, then select users from the grid below and click Send</span>
-    </div>
-
-    @if (sendSuccessMessage) {
-      <div class="alert alert-success">
-        <span class="alert-icon">✓</span>
-        <div>
-          <strong>Success!</strong>
-          <p>{{ sendSuccessMessage }}</p>
-        </div>
-      </div>
-    }
-
-    @if (sendError) {
-      <div class="alert alert-danger">
-        <span class="alert-icon">⚠</span>
-        <div>
-          <strong>Error</strong>
-          <p>{{ sendError }}</p>
-        </div>
-      </div>
-    }
-
-    <div class="send-form">
-      <div class="form-group">
-        <label for="sendTitle">Title <span class="text-danger">*</span></label>
-        <input
-          id="sendTitle"
-          type="text"
-          class="form-control"
-          [(ngModel)]="sendTitle"
-          placeholder="e.g. Monsoon Alert: Heavy Rainfall Expected" />
-      </div>
-
-      <div class="form-group">
-        <label for="sendMessage">Message <span class="text-danger">*</span></label>
-        <div class="rte">
-          <div class="rte-toolbar">
-            <button type="button" class="rte-btn" title="Bold" (mousedown)="$event.preventDefault()" (click)="execCommand('bold')"><strong>B</strong></button>
-            <button type="button" class="rte-btn" title="Italic" (mousedown)="$event.preventDefault()" (click)="execCommand('italic')"><em>I</em></button>
-            <button type="button" class="rte-btn" title="Underline" (mousedown)="$event.preventDefault()" (click)="execCommand('underline')"><u>U</u></button>
-            <button type="button" class="rte-btn" title="Strikethrough" (mousedown)="$event.preventDefault()" (click)="execCommand('strikeThrough')"><s>S</s></button>
-            <span class="rte-sep"></span>
-            <button type="button" class="rte-btn" title="Bullet list" (mousedown)="$event.preventDefault()" (click)="execCommand('insertUnorderedList')">• List</button>
-            <button type="button" class="rte-btn" title="Numbered list" (mousedown)="$event.preventDefault()" (click)="execCommand('insertOrderedList')">1. List</button>
-            <span class="rte-sep"></span>
-            <button type="button" class="rte-btn" title="Align left" (mousedown)="$event.preventDefault()" (click)="execCommand('justifyLeft')">⯇</button>
-            <button type="button" class="rte-btn" title="Align center" (mousedown)="$event.preventDefault()" (click)="execCommand('justifyCenter')">≡</button>
-            <button type="button" class="rte-btn" title="Align right" (mousedown)="$event.preventDefault()" (click)="execCommand('justifyRight')">⯈</button>
-            <span class="rte-sep"></span>
-            <button type="button" class="rte-btn" title="Heading" (mousedown)="$event.preventDefault()" (click)="execCommand('formatBlock', 'H3')">H</button>
-            <button type="button" class="rte-btn" title="Normal text" (mousedown)="$event.preventDefault()" (click)="execCommand('formatBlock', 'P')">¶</button>
-            <span class="rte-sep"></span>
-            <button type="button" class="rte-btn" title="Undo" (mousedown)="$event.preventDefault()" (click)="execCommand('undo')">↶</button>
-            <button type="button" class="rte-btn" title="Redo" (mousedown)="$event.preventDefault()" (click)="execCommand('redo')">↷</button>
-            <button type="button" class="rte-btn" title="Clear formatting" (mousedown)="$event.preventDefault()" (click)="execCommand('removeFormat')">✕</button>
-          </div>
-          <div
-            #messageEditor
-            class="rte-editor"
-            contenteditable="true"
-            role="textbox"
-            aria-multiline="true"
-            (input)="onMessageInput()"
-            (blur)="onMessageInput()"
-            data-placeholder="Enter the message to broadcast to the selected users..."></div>
-        </div>
-      </div>
-
-      <div class="send-actions">
-        <span class="selected-count" [class.has-selection]="selectedCount > 0">{{ selectedCount }} user(s) selected</span>
-        <button
-          type="button"
-          class="btn-submit send-btn"
-          (click)="sendToUsers()"
-          [disabled]="sending">
-          @if (sending) {
-            <span class="spinner-small"></span> Sending...
-          } @else {
-            <span>📤 Send</span>
-          }
-        </button>
-      </div>
-    </div>
-  </div>
-
-
   <div class="panel">
     <div class="panel-header flex-header">
       <div>
-        <h3>Mapped User-Portal Records</h3>
+        <h3>Registered User-Portal Records</h3>
         <span class="panel-sub">
           @if (records.length > 0) {
             Showing {{ records.length }} record(s)
@@ -224,15 +144,16 @@
             </tr>
           </thead>
           <tbody>
-            @for (rec of records; track rec.user_portal_id) {
-              <tr [class.selected-row]="isSelected(rec.user_portal_id)">
+            @for (rec of records; track rec.user_portal_id ?? rec.userid) {
+              <tr [class.selected-row]="isSelected(rec)">
                 <td class="select-col">
                   <input
                     type="checkbox"
-                    [checked]="isSelected(rec.user_portal_id)"
-                    (change)="toggleSelection(rec.user_portal_id)" />
+                    [checked]="isSelected(rec)"
+                    [title]="isSelected(rec) ? 'Deselect user' : 'Select user'"
+                    (change)="toggleSelection(rec)" />
                 </td>
-                <td class="font-mono">#{{ rec.user_portal_id }}</td>
+                <td class="font-mono">{{ rec.user_portal_id === null ? '—' : '#' + rec.user_portal_id }}</td>
                 <td><strong>{{ rec.portal_name || '—' }}</strong></td>
                 <td>{{ rec.user_type_name || '—' }}</td>
                 <td class="font-mono">{{ rec.mobile || '—' }}</td>
@@ -263,6 +184,100 @@
         </table>
       </div>
     }
+
+    @if (selectedCount > 0) {
+      <div class="proceed-actions">
+        <span class="selected-count has-selection">{{ selectedCount }} user(s) selected</span>
+        <button type="button" class="btn-submit proceed-btn" (click)="openBroadcastModal()">
+          Proceed <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    }
   </div>
+
+  @if (showBroadcastModal) {
+    <div class="broadcast-modal-backdrop" (click)="closeBroadcastModal()">
+      <section class="broadcast-modal" role="dialog" aria-modal="true" aria-labelledby="broadcast-modal-title" (click)="$event.stopPropagation()">
+        <header class="broadcast-modal-header">
+          <div>
+            <h3 id="broadcast-modal-title">Send Broadcast to Selected Users</h3>
+            <p>Compose a message for {{ selectedCount }} selected user(s).</p>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeBroadcastModal()" [disabled]="sending" aria-label="Close broadcast message form">&times;</button>
+        </header>
+
+        @if (sendError) {
+          <div class="alert alert-danger modal-alert">
+            <span class="alert-icon">⚠</span>
+            <div>
+              <strong>Error</strong>
+              <p>{{ sendError }}</p>
+            </div>
+          </div>
+        }
+
+        <div class="send-form">
+          <div class="form-group">
+            <label for="sendTitle">Title <span class="text-danger">*</span></label>
+            <input
+              id="sendTitle"
+              type="text"
+              class="form-control"
+              [(ngModel)]="sendTitle"
+              placeholder="e.g. Monsoon Alert: Heavy Rainfall Expected" />
+          </div>
+
+          <div class="form-group">
+            <label for="sendMessage">Message <span class="text-danger">*</span></label>
+            <div class="rte">
+              <div class="rte-toolbar">
+                <button type="button" class="rte-btn" title="Bold" (mousedown)="$event.preventDefault()" (click)="execCommand('bold')"><strong>B</strong></button>
+                <button type="button" class="rte-btn" title="Italic" (mousedown)="$event.preventDefault()" (click)="execCommand('italic')"><em>I</em></button>
+                <button type="button" class="rte-btn" title="Underline" (mousedown)="$event.preventDefault()" (click)="execCommand('underline')"><u>U</u></button>
+                <button type="button" class="rte-btn" title="Strikethrough" (mousedown)="$event.preventDefault()" (click)="execCommand('strikeThrough')"><s>S</s></button>
+                <span class="rte-sep"></span>
+                <button type="button" class="rte-btn" title="Bullet list" (mousedown)="$event.preventDefault()" (click)="execCommand('insertUnorderedList')">• List</button>
+                <button type="button" class="rte-btn" title="Numbered list" (mousedown)="$event.preventDefault()" (click)="execCommand('insertOrderedList')">1. List</button>
+                <span class="rte-sep"></span>
+                <button type="button" class="rte-btn" title="Align left" (mousedown)="$event.preventDefault()" (click)="execCommand('justifyLeft')">⯇</button>
+                <button type="button" class="rte-btn" title="Align center" (mousedown)="$event.preventDefault()" (click)="execCommand('justifyCenter')">≡</button>
+                <button type="button" class="rte-btn" title="Align right" (mousedown)="$event.preventDefault()" (click)="execCommand('justifyRight')">⯈</button>
+                <span class="rte-sep"></span>
+                <button type="button" class="rte-btn" title="Heading" (mousedown)="$event.preventDefault()" (click)="execCommand('formatBlock', 'H3')">H</button>
+                <button type="button" class="rte-btn" title="Normal text" (mousedown)="$event.preventDefault()" (click)="execCommand('formatBlock', 'P')">¶</button>
+                <span class="rte-sep"></span>
+                <button type="button" class="rte-btn" title="Undo" (mousedown)="$event.preventDefault()" (click)="execCommand('undo')">↶</button>
+                <button type="button" class="rte-btn" title="Redo" (mousedown)="$event.preventDefault()" (click)="execCommand('redo')">↷</button>
+                <button type="button" class="rte-btn" title="Clear formatting" (mousedown)="$event.preventDefault()" (click)="execCommand('removeFormat')">✕</button>
+              </div>
+              <div
+                #messageEditor
+                class="rte-editor"
+                contenteditable="true"
+                role="textbox"
+                aria-multiline="true"
+                (input)="onMessageInput()"
+                (blur)="onMessageInput()"
+                data-placeholder="Enter the message to broadcast to the selected users..."></div>
+            </div>
+          </div>
+
+          <div class="send-actions modal-actions">
+            <span class="selected-count has-selection">{{ selectedCount }} user(s) selected</span>
+            <div class="modal-action-buttons">
+              <button type="button" class="btn-modal-cancel" (click)="closeBroadcastModal()" [disabled]="sending">Cancel</button>
+              <button type="button" class="btn-submit send-btn" (click)="sendToUsers()" [disabled]="sending">
+                @if (sending) {
+                  <span class="spinner-small"></span> Broadcasting...
+                } @else {
+                  <span>📢 Broadcast Message</span>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  }
 
 </div>

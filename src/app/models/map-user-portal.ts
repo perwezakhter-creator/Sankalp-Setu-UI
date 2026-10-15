@@ -4,8 +4,8 @@ export interface MapUserPortalRequest {
 }
 
 export interface MapUserPortalData {
-  user_portal_id: number;
-  portal_id: number;
+  user_portal_id: number | null;
+  portal_id: number | null;
   portal_name?: string;
   user_type_id?: number;
   user_type_name?: string;

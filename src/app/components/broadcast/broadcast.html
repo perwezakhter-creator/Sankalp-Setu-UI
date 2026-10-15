@@ -79,7 +79,7 @@
 
         <!-- Portal -->
         <div class="form-group">
-          <label for="portal">Portal <span class="text-danger">*</span></label>
+          <label for="portal">Portal</label>
           <app-select-dropdown
             id="portal"
             formControlName="portal_id"
@@ -93,14 +93,11 @@
           @if (portalError && !portalLoading) {
             <small class="error-text">{{ portalError }}</small>
           }
-          @if (broadcastForm.get('portal_id')?.touched && broadcastForm.get('portal_id')?.invalid) {
-            <small class="error-text">Please select a portal.</small>
-          }
         </div>
 
         <!-- User Type -->
         <div class="form-group">
-          <label for="userType">User Type <span class="text-danger">*</span></label>
+          <label for="userType">User Type</label>
           <app-select-dropdown
             id="userType"
             formControlName="user_type_id"
@@ -112,9 +109,6 @@
           }
           @if (userTypesError && !userTypesLoading) {
             <small class="error-text">{{ userTypesError }}</small>
-          }
-          @if (broadcastForm.get('user_type_id')?.touched && broadcastForm.get('user_type_id')?.invalid) {
-            <small class="error-text">Please select a user type.</small>
           }
         </div>
 

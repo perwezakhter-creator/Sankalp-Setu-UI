@@ -50,8 +50,8 @@ export class BroadcastComponent implements OnInit {
     message_body: new FormControl('', [Validators.required]),
     validity_in_minutes: new FormControl(1440, [Validators.required, Validators.min(1)]),
     is_active: new FormControl<'Y' | 'N'>('Y', [Validators.required]),
-    portal_id: new FormControl('', [Validators.required]),
-    user_type_id: new FormControl('', [Validators.required]),
+    portal_id: new FormControl(''),
+    user_type_id: new FormControl(''),
     photo1path: new FormControl(''),
     videopath: new FormControl(''),
     documentpath: new FormControl('')
