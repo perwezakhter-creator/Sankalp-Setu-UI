@@ -475,7 +475,8 @@ export class BeneficiaryComponent implements OnInit {
  
   loadBroadcastMessages(): void {
     this.broadcastLoading = true;
-    this.messageService.getBroadcastMessages().subscribe({
+    const deviceId = this.profile?.deviceId || localStorage.getItem('deviceId') || '';
+    this.messageService.getBroadcastMessages(deviceId).subscribe({
       next: (res: any) => {
         this.broadcastLoading = false;
         if (res && res.status && Array.isArray(res.data)) {

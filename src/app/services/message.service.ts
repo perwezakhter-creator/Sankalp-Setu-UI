@@ -37,8 +37,10 @@ export class MessageService {
   /**
    * Retrieves all active broadcast messages from SQL Server (tbl_BroadCastMessage).
    */
-  getBroadcastMessages(): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/GetBroadCastMessage`, {});
+  getBroadcastMessages(deviceId?: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/GetBroadCastMessage`, {
+      DeviceID: deviceId?.trim() || ''
+    });
   }
 
   /**

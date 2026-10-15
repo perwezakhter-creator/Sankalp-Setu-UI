@@ -380,25 +380,36 @@ export class PortalUserModal implements OnChanges {
       .filter((id) => id !== undefined && id !== null && id !== '')
       .map(Number);
 
-    if (!aIds.length) {
+    // Portals without an external beneficiary API use the internal OTP flow.
+    // Its send-OTP response intentionally has no external beneficiary a_Id.
+    const isInternalOtpRegistration = !aIds.length && records.some((record) =>
+      record?.otpRequired === true || record?.otp_required === true
+    );
+
+    if (!aIds.length && !isInternalOtpRegistration) {
       this.errorMessage = 'Beneficiary record reference (a_Id) is missing. Please send the OTP again.';
       return;
     }
 
     const payload = {
-      a_Id: aIds,
+      ...(aIds.length ? { a_Id: aIds } : {}),
       mobileNo: this.userForm.controls.mobileNo.value,
       otp: this.otpForm.value.otp,
       deviceId: this.deviceId,
       session: this.userForm.controls.session.value,
       portal_id: this.portalId,
+      UserType: this.userForm.controls.userType.value,
       client_key: localStorage.getItem('clientKey') || '',
       user_id: localStorage.getItem('UserId') || 'string',
     };
 
     this.loading = true;
 
-    this.portalService.verifyOtp(payload).subscribe({
+    const verifyRequest = isInternalOtpRegistration
+      ? this.portalService.verifyApplicantOtp(payload)
+      : this.portalService.verifyOtp(payload);
+
+    verifyRequest.subscribe({
       next: (res: any) => {
         this.loading = false;
         if (res && (res.status === true || res.status === 1 || res.success === true)) {
