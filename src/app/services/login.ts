@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { LoginRequest } from '../models/login-request';
 import { LoginResponse } from '../models/login-response';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,8 @@ import { LoginResponse } from '../models/login-response';
 export class Login {
 
   private http = inject(HttpClient);
-  private apiUrl = '/api/Auth/Login';
+  private baseUrl = environment.apiUrl;
+  private apiUrl = `${this.baseUrl}/Auth/Login`;
 
   //private apiUrl = 'http://10.133.20.147:81/api/Users/Login';
   //private apiUrl = 'https://localhost:7131/api/Auth/Login';

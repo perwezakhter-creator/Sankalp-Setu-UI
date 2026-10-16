@@ -12,15 +12,17 @@ import {
   GetInterestWiseMessageResponse
 } from '../models/interest-message';
 import { SendToUserRequest, SendToUserResponse } from '../models/map-user-portal';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MessageService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/Message';
-  private notificationApiUrl = '/api/Notifications';
-  private masterApiUrl = '/api/Master';
+  private baseUrl = environment.apiUrl; 
+  private apiUrl = `${this.baseUrl}/Message`;
+  private notificationApiUrl = `${this.baseUrl}/api/Notifications`;
+  private masterApiUrl = `${this.baseUrl}/api/Master`;
 
   /**
 

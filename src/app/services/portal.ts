@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { CryptoService } from './crypto.service';
-
+import { environment } from '../../environments/environment';
 @Injectable({
   providedIn: 'root'
 })
@@ -11,9 +11,10 @@ export class PortalService {
   private http = inject(HttpClient);
   private cryptoService = inject(CryptoService);
 
-  apiUrl = '/api/Master/GetPortalList';
-  portalApiUrl = '/api/Portal';
-  applicantApiUrl = '/api/Applicant';
+  private baseUrl = environment.apiUrl;
+  apiUrl = `${this.baseUrl}/Master/GetPortalList`;
+  portalApiUrl = `${this.baseUrl}/Portal`;
+  applicantApiUrl = `${this.baseUrl}/Applicant`;
 
   getPortalList(): Observable<any> {
 

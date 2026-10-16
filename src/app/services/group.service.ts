@@ -9,13 +9,15 @@ import {
   GroupManagementResponse,
   SubGroup
 } from '../models/group-subgroup';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GroupService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = '/api/Group';
+  private readonly baseUrl = environment.apiUrl;
+  private readonly apiUrl = `${this.baseUrl}/Group`;
 
   getGroupManagement(): Observable<GroupManagementResponse<GroupManagementData>> {
     return this.http.get<GroupManagementResponse<GroupManagementData>>(`${this.apiUrl}/List`);

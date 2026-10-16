@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { CryptoService } from './crypto.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -10,8 +11,8 @@ export class DistrictService {
 
   private http = inject(HttpClient);
    private cryptoService = inject(CryptoService);
-
-  apiUrl = '/api/Master/GetDistrictList';
+  private baseUrl = environment.apiUrl;
+  apiUrl = `${this.baseUrl}/Master/GetDistrictList`;
 
   getDistrictList(): Observable<any> {
 

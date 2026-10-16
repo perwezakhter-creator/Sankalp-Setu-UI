@@ -7,20 +7,22 @@ import {
   VerifyOtpRequest,
   OtpResponse,
 } from '../models/otp';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OtpService {
+  private baseUrl = environment.apiUrl;
 
   private http = inject(HttpClient);
 
   sendOtp(request: SendOtpRequest): Observable<OtpResponse> {
-    return this.http.post<OtpResponse>('/api/Otp/SendOtp', request);
+    return this.http.post<OtpResponse>(`${this.baseUrl}/api/Otp/SendOtp`, request);
   }
 
   verifyOtp(request: VerifyOtpRequest): Observable<OtpResponse> {
-    return this.http.post<OtpResponse>('/api/Otp/VerifyOtp', request);
+    return this.http.post<OtpResponse>(`${this.baseUrl}/api/Otp/VerifyOtp`, request);
   }
 
 }

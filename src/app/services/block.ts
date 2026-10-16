@@ -1,15 +1,17 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CryptoService } from './crypto.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BlockService {
 
+   private baseUrl = environment.apiUrl;
   private http = inject(HttpClient);
   private cryptoService = inject(CryptoService);
-  private apiUrl = '/api/Master/GetBlockList';
+  private apiUrl = `${this.baseUrl}/Master/GetBlockList`;
 
   getBlockList(distCode: string) {
 
