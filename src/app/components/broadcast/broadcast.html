@@ -9,9 +9,15 @@
       <p class="subtitle">Publish state-wide alerts and advisories to citizen applicants via Sankalp Setu</p>
     </div>
 
-    <div class="header-badge">
-      <span class="badge-icon">📢</span>
-      <span>State-wide Advisories</span>
+    <div class="header-actions">
+      <div class="header-badge">
+        <span class="badge-icon">📢</span>
+        <span>State-wide Advisories</span>
+      </div>
+
+      <button type="button" class="btn-submit btn-create" (click)="openCreateModal()" aria-haspopup="dialog">
+        <span aria-hidden="true">+</span> Create New Broadcast Notice
+      </button>
     </div>
   </div>
 
@@ -26,34 +32,33 @@
     </div>
   }
 
-  @if (errorMessage) {
-    <div class="alert alert-danger">
-      <span class="alert-icon">⚠</span>
-      <div>
-        <strong>Error</strong>
-        <p>{{ errorMessage }}</p>
-      </div>
-    </div>
-  }
-
-  <div class="layout-grid">
-
-    <!-- ============================================================ -->
-    <!-- 1. CREATE BROADCAST NOTICE FORM -->
-    <!-- ============================================================ -->
-    <div class="panel form-panel">
-      <div class="panel-header">
-        <h3>Create New Broadcast Notice</h3>
+    <dialog #createNoticeDialog class="panel create-notice-dialog" aria-labelledby="create-notice-title"
+      (cancel)="onCreateModalCancel($event)">
+      <header class="panel-header create-notice-header">
+        <h3 id="create-notice-title">Create New Broadcast Notice</h3>
         <span class="panel-sub">Publish state-wide announcements to all citizens</span>
-      </div>
+        <button type="button" class="modal-close-btn" (click)="closeCreateModal()" [disabled]="loading" aria-label="Close create notice form">&times;</button>
+      </header>
+
+      @if (errorMessage) {
+        <div class="alert alert-danger" role="alert">
+          <span class="alert-icon">⚠</span>
+          <div>
+            <strong>Error</strong>
+            <p>{{ errorMessage }}</p>
+          </div>
+        </div>
+      }
 
       <form [formGroup]="broadcastForm" (ngSubmit)="submitBroadcast()">
+        <div class="create-form-grid">
 
         <!-- Header / Subject -->
         <div class="form-group">
           <label for="head">Notice Header / Title <span class="text-danger">*</span></label>
           <input
             id="head"
+            autofocus
             type="text"
             formControlName="message_head"
             placeholder="e.g. Agriculture Alert: Monsoon Guidelines for Farmers"
@@ -112,6 +117,25 @@
           }
         </div>
 
+        </div>
+
+        <div class="district-targeting-control">
+          <label class="district-toggle">
+            <input
+              type="checkbox"
+              formControlName="is_all_district"
+              (change)="onAllDistrictChange($event)" />
+            <span>All districts</span>
+          </label>
+          @if (broadcastForm.get('is_all_district')?.value === false) {
+            <button type="button" class="btn-select-districts" (click)="openDistrictSelector()">
+              {{ selectedDistrictCodes.length ? selectedDistrictCodes.length + ' district(s) selected' : 'Select districts' }}
+            </button>
+          } @else {
+            <span class="district-targeting-hint">This notice will be available across all districts.</span>
+          }
+        </div>
+
         <!-- Validity & Quick Presets -->
         <div class="form-row">
           <div class="form-group col">
@@ -128,6 +152,22 @@
               <button type="button" class="btn-preset" (click)="setValidityQuick(1440)">24 Hours</button>
               <button type="button" class="btn-preset" (click)="setValidityQuick(10080)">7 Days</button>
             </div>
+          </div>
+
+          <div class="form-group message-type-col">
+            <label for="messageType">Message Type <span class="text-danger">*</span></label>
+            <app-select-dropdown
+              id="messageType"
+              formControlName="mesg_type_id"
+              [options]="messageTypeOptions"
+              placeholder="-- Select Message Type --">
+            </app-select-dropdown>
+            @if (messageTypesLoading) {
+              <small class="hint-text">Loading message types...</small>
+            }
+            @if (messageTypesError && !messageTypesLoading) {
+              <small class="error-text">{{ messageTypesError }}</small>
+            }
           </div>
 
           <div class="form-group col-small">
@@ -152,6 +192,7 @@
 
         <!-- Submit Button -->
         <div class="form-actions">
+          <button type="button" class="btn-refresh btn-cancel" (click)="closeCreateModal()" [disabled]="loading">Cancel</button>
           <button
             type="submit"
             class="btn-submit"
@@ -165,11 +206,62 @@
         </div>
 
       </form>
-    </div>
 
-    <!-- ============================================================ -->
-    <!-- 2. PUBLISHED BROADCAST NOTICES TABLE -->
-    <!-- ============================================================ -->
+      @if (showDistrictSelector) {
+        <div class="district-modal-backdrop" (click)="closeDistrictSelector()">
+          <section class="district-modal" role="dialog" aria-modal="true" aria-labelledby="district-modal-title" (click)="$event.stopPropagation()">
+            <header class="district-modal-header">
+              <div>
+                <h3 id="district-modal-title">Select Districts</h3>
+                <p>Choose the districts that should receive this broadcast notice.</p>
+              </div>
+              <button type="button" class="district-modal-close" (click)="closeDistrictSelector()" aria-label="Close district selection">&times;</button>
+            </header>
+
+            <div class="district-modal-content">
+              <input
+                type="search"
+                class="form-control district-search"
+                [value]="districtSearchTerm"
+                (input)="districtSearchTerm = $any($event.target).value"
+                placeholder="Search by district name or code" />
+
+              @if (districtsLoading) {
+                <div class="district-loading"><span class="spinner-small"></span> Loading districts...</div>
+              } @else if (districtsError) {
+                <p class="error-text">{{ districtsError }}</p>
+              } @else {
+                <label class="district-option select-all-districts">
+                  <input type="checkbox" [checked]="allPendingDistrictsSelected" (change)="toggleAllDistricts($event)" />
+                  <strong>Select all districts</strong>
+                </label>
+                <div class="district-option-list">
+                  @for (district of filteredDistricts; track district.code) {
+                    <label class="district-option">
+                      <input type="checkbox" [checked]="isDistrictPending(district.code)" (change)="toggleDistrict(district.code, $event)" />
+                      <span>{{ district.name }} <small>({{ district.code }})</small></span>
+                    </label>
+                  } @empty {
+                    <p class="district-empty">No districts match your search.</p>
+                  }
+                </div>
+              }
+
+              @if (districtSelectionError) {
+                <p class="error-text">{{ districtSelectionError }}</p>
+              }
+            </div>
+
+            <footer class="district-modal-actions">
+              <button type="button" class="btn-refresh btn-cancel" (click)="closeDistrictSelector()">Cancel</button>
+              <button type="button" class="btn-submit district-save-btn" (click)="saveDistrictSelection()" [disabled]="districtsLoading || !!districtsError">Save districts</button>
+            </footer>
+          </section>
+        </div>
+      }
+    </dialog>
+
+
     <div class="panel list-panel">
       <div class="panel-header flex-header">
         <div>
@@ -229,8 +321,6 @@
         </div>
       }
     </div>
-
-  </div>
 
   <!-- POPUP MODAL (SAVED SUCCESSFULLY) -->
   @if (showSuccessModal) {

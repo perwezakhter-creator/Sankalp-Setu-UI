@@ -1,14 +1,20 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MessageService } from '../../services/message.service';
 import { PortalService } from '../../services/portal';
+import { DistrictService } from '../../services/district';
 import { CryptoService } from '../../services/crypto.service';
 import { SelectDropdownComponent, DropdownOption } from '../select-dropdown/select-dropdown';
 import {
   InsertBroadcastMessageRequest,
   BroadcastMessageData
 } from '../../models/broadcast-message';
+
+interface DistrictOption {
+  code: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-broadcast',
@@ -20,6 +26,7 @@ import {
 export class BroadcastComponent implements OnInit {
   private messageService = inject(MessageService);
   private portalService = inject(PortalService);
+  private districtService = inject(DistrictService);
   private cryptoService = inject(CryptoService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -28,6 +35,25 @@ export class BroadcastComponent implements OnInit {
   successMessage: string = '';
   errorMessage: string = '';
   createdId: number | null = null;
+
+  @ViewChild('createNoticeDialog') createNoticeDialog!: ElementRef<HTMLDialogElement>;
+
+  openCreateModal(): void {
+    this.errorMessage = '';
+    this.createNoticeDialog.nativeElement.showModal();
+  }
+
+  closeCreateModal(): void {
+    if (!this.loading) {
+      this.createNoticeDialog.nativeElement.close();
+    }
+  }
+
+  onCreateModalCancel(event: Event): void {
+    if (this.loading) {
+      event.preventDefault();
+    }
+  }
 
   // POPUP MODAL STATE
   showSuccessModal: boolean = false;
@@ -45,6 +71,19 @@ export class BroadcastComponent implements OnInit {
   userTypesLoading = false;
   userTypesError = '';
 
+  messageTypeOptions: DropdownOption[] = [];
+  messageTypesLoading = false;
+  messageTypesError = '';
+
+  districts: DistrictOption[] = [];
+  districtsLoading = false;
+  districtsError = '';
+  districtSearchTerm = '';
+  showDistrictSelector = false;
+  districtSelectionError = '';
+  selectedDistrictCodes: string[] = [];
+  pendingDistrictCodes: string[] = [];
+
   broadcastForm = new FormGroup({
     message_head: new FormControl('', [Validators.required, Validators.maxLength(255)]),
     message_body: new FormControl('', [Validators.required]),
@@ -52,6 +91,8 @@ export class BroadcastComponent implements OnInit {
     is_active: new FormControl<'Y' | 'N'>('Y', [Validators.required]),
     portal_id: new FormControl(''),
     user_type_id: new FormControl(''),
+    mesg_type_id: new FormControl('', [Validators.required]),
+    is_all_district: new FormControl(true),
     photo1path: new FormControl(''),
     videopath: new FormControl(''),
     documentpath: new FormControl('')
@@ -60,6 +101,7 @@ export class BroadcastComponent implements OnInit {
   ngOnInit(): void {
     this.loadBroadcastMessages();
     this.loadPortals();
+    this.loadMessageTypes();
   }
 
   loadBroadcastMessages(): void {
@@ -107,6 +149,31 @@ export class BroadcastComponent implements OnInit {
         this.portalError = 'Failed to load portals. Please try again.';
         this.broadcastForm.get('portal_id')?.enable();
         console.error('Failed to load portals:', err);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadMessageTypes(): void {
+    this.messageTypesLoading = true;
+    this.messageTypesError = '';
+    this.messageService.getMessageTypes().subscribe({
+      next: (res: any) => {
+        this.messageTypesLoading = false;
+        if (res?.status && Array.isArray(res.data)) {
+          this.messageTypeOptions = res.data.map((item: any) => ({
+            code: String(item.mesg_type_id ?? item.MesgTypeID ?? ''),
+            name: String(item.mesg_type_name ?? item.MesgTypeName ?? '')
+          })).filter((item: DropdownOption) => item.code && item.name);
+        } else {
+          this.messageTypesError = 'No message types are available.';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.messageTypesLoading = false;
+        this.messageTypesError = 'Failed to load message types. Please try again.';
+        console.error('Failed to load message types:', err);
         this.cdr.detectChanges();
       }
     });
@@ -163,7 +230,107 @@ export class BroadcastComponent implements OnInit {
     }
   }
 
+  get filteredDistricts(): DistrictOption[] {
+    const search = this.districtSearchTerm.trim().toLowerCase();
+    if (!search) return this.districts;
+    return this.districts.filter(district =>
+      district.code.toLowerCase().includes(search) || district.name.toLowerCase().includes(search));
+  }
+
+  get allPendingDistrictsSelected(): boolean {
+    return this.districts.length > 0 && this.districts.every(district => this.pendingDistrictCodes.includes(district.code));
+  }
+
+  onAllDistrictChange(event: Event): void {
+    const isAllDistrict = (event.target as HTMLInputElement).checked;
+    this.broadcastForm.patchValue({ is_all_district: isAllDistrict });
+
+    if (isAllDistrict) {
+      this.selectedDistrictCodes = [];
+      return;
+    }
+
+    this.openDistrictSelector();
+  }
+
+  openDistrictSelector(): void {
+    this.districtSelectionError = '';
+    this.districtSearchTerm = '';
+    this.pendingDistrictCodes = [...this.selectedDistrictCodes];
+    this.showDistrictSelector = true;
+    this.loadDistricts();
+  }
+
+  closeDistrictSelector(): void {
+    this.showDistrictSelector = false;
+    this.districtSelectionError = '';
+
+    if (!this.selectedDistrictCodes.length) {
+      this.broadcastForm.patchValue({ is_all_district: true });
+    }
+  }
+
+  loadDistricts(): void {
+    if (this.districtsLoading || this.districts.length) return;
+
+    this.districtsLoading = true;
+    this.districtsError = '';
+    this.districtService.getDistrictList().subscribe({
+      next: (res: any) => {
+        this.districtsLoading = false;
+        if (res?.status && Array.isArray(res.data)) {
+          this.districts = res.data
+            .map((item: any) => ({
+              code: this.decrypt(item.district_Code ?? item.District_Code ?? item.district_code),
+              name: this.decrypt(item.district_Name ?? item.District_Name ?? item.district_name)
+            }))
+            .filter((district: DistrictOption) => district.code && district.name);
+        } else {
+          this.districtsError = 'No districts are available.';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.districtsLoading = false;
+        this.districtsError = 'Failed to load districts. Please try again.';
+        console.error('Failed to load districts:', err);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  isDistrictPending(code: string): boolean {
+    return this.pendingDistrictCodes.includes(code);
+  }
+
+  toggleDistrict(code: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.pendingDistrictCodes = checked
+      ? [...new Set([...this.pendingDistrictCodes, code])]
+      : this.pendingDistrictCodes.filter(item => item !== code);
+    this.districtSelectionError = '';
+  }
+
+  toggleAllDistricts(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.pendingDistrictCodes = checked ? this.districts.map(district => district.code) : [];
+    this.districtSelectionError = '';
+  }
+
+  saveDistrictSelection(): void {
+    if (!this.pendingDistrictCodes.length) {
+      this.districtSelectionError = 'Select at least one district or choose All districts.';
+      return;
+    }
+
+    this.selectedDistrictCodes = [...this.pendingDistrictCodes];
+    this.showDistrictSelector = false;
+    this.districtSelectionError = '';
+  }
+
   submitBroadcast(): void {
+    if (this.loading) return;
+
     if (this.broadcastForm.invalid) {
       this.broadcastForm.markAllAsTouched();
       return;
@@ -183,9 +350,12 @@ export class BroadcastComponent implements OnInit {
       is_active: val.is_active || 'Y',
       portal_id: val.portal_id ? Number(val.portal_id) : undefined,
       user_type_id: val.user_type_id ? String(val.user_type_id) : undefined,
+      mesg_type_id: Number(val.mesg_type_id),
       photo1path: val.photo1path?.trim() || undefined,
       videopath: val.videopath?.trim() || undefined,
       documentpath: val.documentpath?.trim() || undefined,
+      is_all_district: val.is_all_district !== false,
+      district_codes: val.is_all_district === false ? this.selectedDistrictCodes : undefined,
       entryby: localStorage.getItem('UserName') || 'Admin'
     };
 
@@ -194,9 +364,12 @@ export class BroadcastComponent implements OnInit {
         this.loading = false;
         if (res && res.status) {
           this.createdId = res.bmsg_id ?? null;
+          this.closeCreateModal();
           
           this.modalTitle = 'Saved Successfully!';
-          this.modalMessage = 'Your broadcast advisory has been published successfully to all citizens.';
+          this.modalMessage = val.is_all_district === false
+            ? 'Your broadcast advisory has been published to the selected districts.'
+            : 'Your broadcast advisory has been published successfully to all citizens.';
           this.modalNoticeId = this.createdId;
           this.showSuccessModal = true;
 
@@ -208,10 +381,13 @@ export class BroadcastComponent implements OnInit {
             is_active: 'Y',
             portal_id: '',
             user_type_id: '',
+            mesg_type_id: '',
+            is_all_district: true,
             photo1path: '',
             videopath: '',
             documentpath: ''
           });
+          this.selectedDistrictCodes = [];
           this.userTypeOptions = [];
           this.broadcastForm.get('user_type_id')?.disable();
           this.loadBroadcastMessages();

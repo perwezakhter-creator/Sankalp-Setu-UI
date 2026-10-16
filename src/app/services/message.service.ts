@@ -45,6 +45,10 @@ export class MessageService {
     });
   }
 
+  getMessageTypes(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/GetMessageType`, {});
+  }
+
   /**
 
    * @param request Payload with userId, title, body, optional imageUrl and data

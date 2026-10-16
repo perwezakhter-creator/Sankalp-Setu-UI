@@ -9,6 +9,9 @@ export interface InsertBroadcastMessageRequest {
   photo2path?: string;
   videopath?: string;
   documentpath?: string;
+  mesg_type_id?: number;
+  is_all_district?: boolean;
+  district_codes?: string[];
   entryby?: string;
   client_key?: string;
 }
@@ -16,6 +19,7 @@ export interface InsertBroadcastMessageRequest {
 export interface BroadcastMessageData {
   bmsg_id: number;
   msg_id: number;
+  mesg_type_id?: number;
   message_head?: string;
   message_body: string;
   validity_in_minutes?: number;
