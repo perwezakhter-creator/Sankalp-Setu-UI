@@ -18,6 +18,8 @@ import { BroadcastComponent } from './components/broadcast/broadcast';
 import { InterestMessageComponent } from './components/interest-message/interest-message';
 import { GroupSubgroupComponent } from './components/group-subgroup/group-subgroup';
 import { SendBroadcastComponent } from './components/send-broadcast/send-broadcast';
+import { CampaignFormComponent } from './components/campaign-form/campaign-form';
+import { CampaignListComponent } from './components/campaign-list/campaign-list';
 import { authGuard } from './guards/auth-guard';
 
 export const routes: Routes = [
@@ -122,6 +124,31 @@ export const routes: Routes = [
       {
         path: 'groups-subgroups',
         component: GroupSubgroupComponent
+      },
+
+      {
+        path: 'campaigns',
+        component: CampaignListComponent
+      },
+
+      {
+        path: 'campaigns/create',
+        component: CampaignFormComponent
+      },
+
+      {
+        path: 'campaigns/edit/:id',
+        component: CampaignFormComponent
+      },
+
+      {
+        path: 'campaign-form',
+        component: CampaignFormComponent
+      },
+
+      {
+        path: 'campaign-form/:id',
+        component: CampaignFormComponent
       }
 
     ]

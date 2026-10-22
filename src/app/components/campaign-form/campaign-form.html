@@ -1,0 +1,507 @@
+<div class="campaign-form-page">
+
+  <!-- ============================================================ -->
+  <!-- PAGE HEADER -->
+  <!-- ============================================================ -->
+  <div class="page-header">
+    <div class="header-left">
+      <a routerLink="/campaigns" class="btn-back">← Back to Campaigns</a>
+      <h2>{{ isEditMode ? 'Edit Campaign #' + campaignId : 'Create New Message Campaign' }}</h2>
+      <p class="subtitle">Design targeted push notification broadcasts with multi-level verification and approval controls</p>
+    </div>
+
+    <div class="header-right">
+      <span class="user-pill">Active User: <strong>{{ currentUserId }}</strong></span>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  @if (accessDenied) {
+    <div class="alert alert-danger" style="margin: 2rem 0; padding: 1.5rem;">
+      <span class="alert-icon" style="font-size: 2rem;">🚫</span>
+      <div>
+        <h4 style="margin: 0 0 8px 0; font-size: 16px;">Role Access Restriction</h4>
+        <p style="margin: 0 0 12px 0;">{{ accessDeniedMessage }}</p>
+        <a routerLink="/campaigns" class="btn btn-secondary">← Back to Campaign List</a>
+      </div>
+    </div>
+  } @else {
+
+    @if (errorMessage) {
+      <div class="alert alert-danger">
+        <span class="alert-icon">⚠</span>
+        <div>
+          <strong>Attention</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Rejection Alert (If Maker is amending a rejected campaign) -->
+    @if (isEditMode && loadedCampaign && (loadedCampaign.rejection_reason || (loadedCampaign.campaign_status && loadedCampaign.campaign_status.toUpperCase().includes('REJECTED')))) {
+      <div class="alert alert-warning" style="margin-bottom: 1.5rem; border-left: 4px solid #e11d48; background: #fff1f2; color: #9f1239;">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <h4 style="margin: 0 0 6px 0; font-size: 15px;">Campaign Rejection Notice ({{ loadedCampaign.campaign_status }})</h4>
+          <p style="margin: 0 0 4px 0;"><strong>Mandatory Reason Given:</strong> {{ loadedCampaign.rejection_reason || 'Please review and amend the campaign content as requested.' }}</p>
+          @if (loadedCampaign.verified_remarks && loadedCampaign.verified_remarks !== loadedCampaign.rejection_reason) {
+            <p style="margin: 0 0 4px 0;"><strong>Checker Remarks:</strong> {{ loadedCampaign.verified_remarks }}</p>
+          }
+          @if (loadedCampaign.approved_remarks && loadedCampaign.approved_remarks !== loadedCampaign.rejection_reason) {
+            <p style="margin: 0 0 4px 0;"><strong>Approver Remarks:</strong> {{ loadedCampaign.approved_remarks }}</p>
+          }
+          <p style="margin: 6px 0 0 0; font-size: 12px; color: #64748b;">
+            Please amend the required broadcast details below and click <strong>"Save & Resubmit for Verification"</strong>.
+          </p>
+        </div>
+      </div>
+    }
+
+    <form [formGroup]="campaignForm">
+    <div class="form-layout-grid">
+
+      <!-- ======================================================== -->
+      <!-- LEFT COLUMN: CAMPAIGN PROFILE & AUDIENCE SELECTION -->
+      <!-- ======================================================== -->
+      <div class="form-main-col">
+
+        <!-- 1. CAMPAIGN DETAILS -->
+        <div class="card-panel">
+          <div class="panel-header">
+            <h3>1. Campaign Profile</h3>
+            <span class="panel-sub">Define campaign identity, objective, and schedule</span>
+          </div>
+
+          <div class="form-group">
+            <label for="campaignName">Campaign Name <span class="text-danger">*</span></label>
+            <input
+              id="campaignName"
+              type="text"
+              formControlName="campaign_name"
+              placeholder="e.g. Rabi Crop Advisory 2026 - South Bihar"
+              class="form-control" />
+            @if (campaignForm.get('campaign_name')?.touched && campaignForm.get('campaign_name')?.invalid) {
+              <small class="text-danger">Campaign name is required (max 250 characters).</small>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="campaignDesc">Campaign Description / Notes</label>
+            <textarea
+              id="campaignDesc"
+              rows="2"
+              formControlName="campaign_description"
+              placeholder="Internal notes regarding target beneficiary criteria or scheme details..."
+              class="form-control"></textarea>
+          </div>
+
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="startDate">Campaign Start Date</label>
+              <input id="startDate" type="date" formControlName="start_date" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="endDate">Campaign End Date (Expiry)</label>
+              <input id="endDate" type="date" formControlName="end_date" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="scheduledTime">Scheduled Send Time (Local)</label>
+              <input
+                id="scheduledTime"
+                type="datetime-local"
+                formControlName="scheduled_send_time"
+                class="form-control" />
+              <small class="field-hint">Leave blank to dispatch immediately upon approval.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. BROADCAST MESSAGE CONTENT -->
+        <div class="card-panel">
+          <div class="panel-header">
+            <h3>2. Broadcast Message Details</h3>
+            <span class="panel-sub">Attach existing notice or compose new broadcast announcement</span>
+          </div>
+
+          <!-- Mode Selector Pill -->
+          <div class="mode-toggle">
+            <button
+              type="button"
+              class="mode-btn"
+              [class.active]="messageSourceMode === 'new'"
+              (click)="setMessageSourceMode('new')">
+              ✍ Compose New Notice
+            </button>
+            <button
+              type="button"
+              class="mode-btn"
+              [class.active]="messageSourceMode === 'existing'"
+              (click)="setMessageSourceMode('existing')">
+              🔗 Link Existing Broadcast Notice
+            </button>
+          </div>
+
+          <!-- Mode: Existing -->
+          @if (messageSourceMode === 'existing') {
+            <div class="existing-picker-box">
+              <div class="form-group">
+                <label>Select Existing Broadcast Notice <span class="text-danger">*</span></label>
+                <select
+                  formControlName="bmsg_id"
+                  (change)="onExistingNoticeSelect(campaignForm.get('bmsg_id')?.value)"
+                  class="form-control">
+                  <option [ngValue]="null">-- Select a broadcast notice --</option>
+                  @for (n of existingNotices; track n.bmsg_id) {
+                    <option [ngValue]="n.bmsg_id">
+                      #{{ n.bmsg_id }} - {{ n.message_head || n.message_body | slice:0:60 }}
+                    </option>
+                  }
+                </select>
+              </div>
+
+              @if (selectedNoticeDetails) {
+                <div class="preview-notice-card">
+                  <h4>{{ selectedNoticeDetails.message_head }}</h4>
+                  <p>{{ selectedNoticeDetails.message_body }}</p>
+                  @if (selectedNoticeDetails.photo1path) {
+                    <span class="attachment-tag">📷 Photo: {{ selectedNoticeDetails.photo1path }}</span>
+                  }
+                  @if (selectedNoticeDetails.videopath) {
+                    <span class="attachment-tag">🎬 Video: {{ selectedNoticeDetails.videopath }}</span>
+                  }
+                  @if (selectedNoticeDetails.documentpath) {
+                    <span class="attachment-tag">📄 Document: {{ selectedNoticeDetails.documentpath }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Mode: Compose New -->
+          @if (messageSourceMode === 'new') {
+            <div class="compose-box">
+              <div class="form-group">
+                <label for="msgHead">Message Header / Subject <span class="text-danger">*</span></label>
+                <input
+                  id="msgHead"
+                  type="text"
+                  formControlName="message_head"
+                  placeholder="e.g. Direct Benefit Transfer Disbursement Alert"
+                  class="form-control" />
+              </div>
+
+              <div class="form-group">
+                <label for="msgBody">Message Body / Content <span class="text-danger">*</span></label>
+                <textarea
+                  id="msgBody"
+                  rows="4"
+                  formControlName="message_body"
+                  placeholder="Write clear notification text that will appear on mobile device notifications..."
+                  class="form-control"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="validity">Message Validity (Minutes)</label>
+                <input
+                  id="validity"
+                  type="number"
+                  formControlName="validity_in_minutes"
+                  placeholder="1440 (24 hours)"
+                  class="form-control" />
+              </div>
+
+              <div class="collapsible-attachments">
+                <label class="attachments-label">Media & Attachment URLs (Optional)</label>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Photo URL 1</label>
+                    <input type="text" formControlName="photo1path" placeholder="https://..." class="form-control" />
+                  </div>
+                  <div class="form-group">
+                    <label>Photo URL 2</label>
+                    <input type="text" formControlName="photo2path" placeholder="https://..." class="form-control" />
+                  </div>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Video URL</label>
+                    <input type="text" formControlName="videopath" placeholder="https://..." class="form-control" />
+                  </div>
+                  <div class="form-group">
+                    <label>Document URL</label>
+                    <input type="text" formControlName="documentpath" placeholder="https://..." class="form-control" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+        </div>
+
+        <!-- 3. TARGET AUDIENCE SELECTION -->
+        <div class="card-panel">
+          <div class="panel-header">
+            <h3>3. Target Audience Selection</h3>
+            <span class="panel-sub">Select portal, user group, and geographic jurisdiction</span>
+          </div>
+
+          <!-- Target Scope Radios -->
+          <div class="form-group">
+            <label>Target Audience Scope</label>
+            <div class="scope-radio-grid">
+              <label class="scope-card" [class.selected]="campaignForm.get('target_scope')?.value === 'ALL'">
+                <input type="radio" formControlName="target_scope" value="ALL" (change)="onScopeChange()" />
+                <div>
+                  <strong>All Registered Users</strong>
+                  <p>Send to all active citizens and mobile app devices statewide</p>
+                </div>
+              </label>
+
+              <label class="scope-card" [class.selected]="campaignForm.get('target_scope')?.value === 'PORTAL'">
+                <input type="radio" formControlName="target_scope" value="PORTAL" (change)="onScopeChange()" />
+                <div>
+                  <strong>Specific Portal Users</strong>
+                  <p>Target registered applicants mapped to a chosen government portal</p>
+                </div>
+              </label>
+
+              <label class="scope-card" [class.selected]="campaignForm.get('target_scope')?.value === 'USER_TYPE'">
+                <input type="radio" formControlName="target_scope" value="USER_TYPE" (change)="onScopeChange()" />
+                <div>
+                  <strong>Specific User Role / Type</strong>
+                  <p>Filter by administrative role, field worker, or applicant classification</p>
+                </div>
+              </label>
+
+              <label class="scope-card" [class.selected]="campaignForm.get('target_scope')?.value === 'LOCATION'">
+                <input type="radio" formControlName="target_scope" value="LOCATION" (change)="onScopeChange()" />
+                <div>
+                  <strong>Geographic Area</strong>
+                  <p>Filter beneficiaries residing in selected districts or blocks</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Portal & User Type Selection -->
+          @if (campaignForm.get('target_scope')?.value === 'PORTAL' || campaignForm.get('target_scope')?.value === 'USER_TYPE') {
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Target Portal <span class="text-danger">*</span></label>
+                <select formControlName="portal_id" (change)="onPortalChange()" class="form-control">
+                  <option [ngValue]="null">-- Select Portal (mst_portal) --</option>
+                  @for (p of portals; track p.portal_id) {
+                    <option [ngValue]="p.portal_id">{{ p.portal_name }}</option>
+                  }
+                </select>
+                @if (portalsLoading) {
+                  <small class="field-hint text-primary">Loading portals from mst_portal...</small>
+                } @else if (portals.length === 0) {
+                  <small class="field-hint text-danger">No active portals found in mst_portal.</small>
+                }
+              </div>
+
+              @if (campaignForm.get('target_scope')?.value === 'USER_TYPE') {
+                <div class="form-group">
+                  <label>Target User Type <span class="text-danger">*</span></label>
+                  <select formControlName="user_type_id" (change)="estimateReach()" class="form-control">
+                    <option [ngValue]="null">-- Select User Type --</option>
+                    @for (ut of userTypes; track ut.user_type_id) {
+                      <option [ngValue]="ut.user_type_id">{{ ut.user_type_name }}</option>
+                    }
+                  </select>
+                  @if (userTypesLoading) {
+                    <small class="field-hint text-primary">Loading user types...</small>
+                  } @else if (campaignForm.get('portal_id')?.value && userTypes.length === 0) {
+                    <small class="field-hint text-muted">No specific user types mapped for this portal.</small>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Geographic Location Filtering -->
+          <div class="location-picker-box">
+            <label class="location-section-title">
+              {{ campaignForm.get('target_scope')?.value === 'LOCATION' ? 'Target Geographic Jurisdictions (Required)' : 'Geographic Targeting (Optional Filter)' }}
+            </label>
+            <p class="field-hint">Add specific districts and blocks to constrain recipient targeting.</p>
+
+            <div class="form-row-3 align-end">
+              <div class="form-group">
+                <label>District <span class="text-danger">*</span></label>
+                <select [(ngModel)]="selectedDistrictCode" [ngModelOptions]="{standalone: true}" (change)="onDistrictChange()" class="form-control">
+                  <option [ngValue]="null">-- Select District --</option>
+                  @for (d of districts; track d.dist_code) {
+                    <option [ngValue]="d.dist_code">{{ d.dist_name }}</option>
+                  }
+                </select>
+                @if (districtsLoading) {
+                  <small class="field-hint text-primary">Loading districts...</small>
+                } @else if (districts.length === 0) {
+                  <small class="field-hint text-danger">No districts available.</small>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>Block (Optional)</label>
+                <select [(ngModel)]="selectedBlockCode" [ngModelOptions]="{standalone: true}" class="form-control">
+                  <option [ngValue]="null">All Blocks in District</option>
+                  @for (b of blocks; track b.block_code) {
+                    <option [ngValue]="b.block_code">{{ b.block_name }}</option>
+                  }
+                </select>
+                @if (blocksLoading) {
+                  <small class="field-hint text-primary">Loading blocks...</small>
+                }
+              </div>
+
+              <div class="form-group">
+                <button type="button" (click)="addLocation()" class="btn btn-secondary btn-block">
+                  ＋ Add Target Area
+                </button>
+              </div>
+            </div>
+
+            <!-- List of targeted locations -->
+            @if (targetLocations.length > 0) {
+              <div class="target-locations-list">
+                <span class="list-label">Active Targeted Jurisdictions ({{ targetLocations.length }}):</span>
+                <div class="chips-container">
+                  @for (loc of targetLocations; track $index) {
+                    <span class="location-tag">
+                      <strong>{{ loc.district_name }}</strong>
+                      @if (loc.block_name) {
+                        <span> › {{ loc.block_name }}</span>
+                      }
+                      <button type="button" class="tag-remove" (click)="removeLocation($index)">×</button>
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- RIGHT COLUMN: REACH ESTIMATION & MOBILE PREVIEW -->
+      <!-- ======================================================== -->
+      <div class="form-side-col">
+
+        <!-- Live Audience Reach Card -->
+        <div class="card-panel reach-panel">
+          <div class="panel-header">
+            <h4>Audience Reach Estimation</h4>
+            <button type="button" class="btn-refresh-sm" (click)="estimateReach()" title="Recalculate Reach">
+              ↻
+            </button>
+          </div>
+
+          @if (isEstimating) {
+            <div class="estimating-state">
+              <div class="mini-spinner"></div>
+              <span>Computing eligible FCM tokens...</span>
+            </div>
+          } @else if (estimatedReach) {
+            <div class="reach-counter">
+              <span class="reach-num">{{ estimatedReach.estimated_recipient_count }}</span>
+              <span class="reach-sub">Eligible Registered Citizens</span>
+            </div>
+
+            <div class="devices-counter">
+              <span>Estimated active devices: <strong>{{ estimatedReach.estimated_devices_count }}</strong></span>
+            </div>
+
+            @if (estimatedReach.platform_breakdown) {
+              <div class="platform-list">
+                @for (entry of estimatedReach.platform_breakdown | keyvalue; track entry.key) {
+                  <div class="platform-row">
+                    <span>{{ entry.key }}:</span>
+                    <strong>{{ entry.value }}</strong>
+                  </div>
+                }
+              </div>
+            }
+          } @else {
+            <div class="reach-init">
+              <p>Configure targeting parameters to calculate audience size.</p>
+              <button type="button" (click)="estimateReach()" class="btn btn-outline btn-sm">Calculate Reach</button>
+            </div>
+          }
+        </div>
+
+        <!-- Mobile Notification Preview Mockup -->
+        <div class="card-panel preview-panel">
+          <div class="panel-header">
+            <h4>Mobile Push Preview</h4>
+            <span class="phone-badge">Android / FCM</span>
+          </div>
+
+          <div class="phone-mockup">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="notification-bubble">
+                <div class="bubble-header">
+                  <div class="app-icon">📢</div>
+                  <span class="app-name">Sankalp Setu</span>
+                  <span class="app-time">Now</span>
+                </div>
+                <div class="bubble-title">
+                  {{ campaignForm.get('message_head')?.value || campaignForm.get('campaign_name')?.value || 'Campaign Title' }}
+                </div>
+                <div class="bubble-body">
+                  {{ campaignForm.get('message_body')?.value || 'Notification message body will appear here in the system tray of citizen devices...' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ACTION FOOTER BAR -->
+    <!-- ============================================================ -->
+    @if (errorMessage) {
+      <div class="alert alert-danger" style="margin-top: 1.5rem; margin-bottom: 0;">
+        <span class="alert-icon">⚠</span>
+        <div>
+          <strong>Attention: </strong>
+          <span>{{ errorMessage }}</span>
+        </div>
+      </div>
+    }
+
+    <div class="form-footer-bar">
+      <a routerLink="/campaigns" class="btn btn-outline">Cancel</a>
+
+      <div class="footer-actions-right">
+        <button
+          type="button"
+          [disabled]="isSaving"
+          (click)="saveCampaign(false)"
+          class="btn btn-secondary">
+          {{ isSaving ? 'Saving...' : 'Save as Draft' }}
+        </button>
+
+        <button
+          type="button"
+          [disabled]="isSaving"
+          (click)="saveCampaign(true)"
+          class="btn btn-primary">
+          {{ isSaving ? 'Submitting...' : (isEditMode && loadedCampaign?.rejection_reason ? '✓ Save & Resubmit for Verification' : '✓ Save & Submit for Verification') }}
+        </button>
+      </div>
+    </div>
+  </form>
+  }
+
+</div>

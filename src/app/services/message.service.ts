@@ -21,8 +21,8 @@ export class MessageService {
   private http = inject(HttpClient);
   private baseUrl = environment.apiUrl; 
   private apiUrl = `${this.baseUrl}/Message`;
-  private notificationApiUrl = `${this.baseUrl}/api/Notifications`;
-  private masterApiUrl = `${this.baseUrl}/api/Master`;
+  private notificationApiUrl = `${this.baseUrl}/Notifications`;
+  private masterApiUrl = `${this.baseUrl}/Master`;
 
   /**
 
