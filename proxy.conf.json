@@ -1,13 +1,13 @@
 {
   "/api": {
-    "target": "https://localhost:7131/",
+    "target": "https://localhost:7131/api",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",
     "proxyTimeout": 120000
   },
   "/uploads": {
-    "target": "https://localhost:7131/",
+    "target": "https://localhost:7131",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"

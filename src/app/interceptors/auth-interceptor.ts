@@ -1,24 +1,30 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-
   const token = localStorage.getItem('token');
+  const userId = localStorage.getItem('UserId') || localStorage.getItem('UserName') || '';
+  const userRole = localStorage.getItem('Role') || '';
 
-   console.log('Interceptor:', req.url);
-   console.log('JWT exists:', !!token);
+  const headers: Record<string, string> = {};
 
   if (token) {
-
-    req = req.clone({
-      setHeaders: {
-        'X-Client-Token': token,
-        Authorization: `Bearer ${token}`
-      }
-    });
-
+    headers['X-Client-Token'] = token;
+    headers['Authorization'] = `Bearer ${token}`;
   }
-  console.log('Authorization header added');
+
+  if (userId) {
+    headers['X-User-Id'] = userId;
+  }
+
+  if (userRole) {
+    headers['X-User-Role'] = userRole;
+  }
+
+  if (Object.keys(headers).length > 0) {
+    req = req.clone({
+      setHeaders: headers
+    });
+  }
 
   return next(req);
-
 };

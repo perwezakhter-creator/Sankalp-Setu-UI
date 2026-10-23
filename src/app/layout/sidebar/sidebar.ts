@@ -20,7 +20,15 @@ export class Sidebar {
   }
 
   isActive(path: string): boolean {
-    return this.router.url === path;
+    return this.router.url === path || this.router.url.startsWith(path + '/') || this.router.url.startsWith(path + '?');
+  }
+
+  openCampaigns() {
+    this.router.navigate(['/campaigns']);
+  }
+
+  openCampaignForm() {
+    this.router.navigate(['/campaigns/create']);
   }
 
   openDashboard() {

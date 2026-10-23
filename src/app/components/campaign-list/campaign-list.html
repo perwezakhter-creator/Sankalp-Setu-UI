@@ -1,0 +1,773 @@
+<div class="campaigns-page">
+
+  <!-- ============================================================ -->
+  <!-- PAGE HEADER -->
+  <!-- ============================================================ -->
+  <div class="page-header">
+    <div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+        <h2>Message Campaign Management</h2>
+        @if (isMaker) {
+          <span class="user-role-badge role-mkr">Maker (MKR)</span>
+        } @else if (isChecker) {
+          <span class="user-role-badge role-ckr">Checker (CKR)</span>
+        } @else if (isApprover) {
+          <span class="user-role-badge role-apr">Approver (APR)</span>
+        } @else {
+          <span class="user-role-badge">{{ currentUserRole || 'User' }}</span>
+        }
+      </div>
+      <p class="subtitle">
+        @if (isMaker) {
+          Create, edit drafts, resubmit rejected campaigns, and dispatch approved broadcast alerts.
+        } @else if (isChecker) {
+          Review and verify campaigns submitted by Makers. Verify or reject with mandatory justification.
+        } @else if (isApprover) {
+          Review Checker-verified campaigns for final executive approval or rejection prior to dispatch.
+        } @else {
+          Orchestrate, verify, approve, and dispatch targeted broadcast alerts to citizen devices via Firebase Cloud Messaging.
+        }
+      </p>
+    </div>
+
+    <div class="header-actions">
+      @if (canCreate()) {
+        <a routerLink="/campaigns/create" class="btn btn-primary">
+          <span class="btn-icon">＋</span> Create Campaign
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Messages -->
+  @if (successMessage) {
+    <div class="alert alert-success">
+      <span class="alert-icon">✓</span>
+      <div>
+        <strong>Success!</strong>
+        <p>{{ successMessage }}</p>
+      </div>
+    </div>
+  }
+
+  @if (errorMessage) {
+    <div class="alert alert-danger">
+      <span class="alert-icon">⚠</span>
+      <div>
+        <strong>Attention</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================ -->
+  <!-- FILTER TOOLBAR -->
+  <!-- ============================================================ -->
+  <div class="filter-card">
+    <div class="filter-grid">
+
+      <!-- Search Input -->
+      <div class="filter-item search-box">
+        <label>Search Campaign / Message</label>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (keyup.enter)="onFilterChange()"
+          placeholder="Filter by name, description, or header..."
+          class="form-control" />
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-item">
+        <label>Campaign Status</label>
+        <select [(ngModel)]="statusFilter" (change)="onFilterChange()" class="form-control">
+          <option value="">All Statuses</option>
+          <option value="DRAFT">DRAFT</option>
+          <option value="SUBMITTED_FOR_VERIFICATION">SUBMITTED_FOR_VERIFICATION</option>
+          <option value="REJECTED_BY_CKR">REJECTED_BY_CKR</option>
+          <option value="PENDING_APPROVAL">PENDING_APPROVAL</option>
+          <option value="REJECTED_BY_APR">REJECTED_BY_APR</option>
+          <option value="APPROVED">APPROVED</option>
+          <option value="SENDING">SENDING</option>
+          <option value="SENT">SENT</option>
+          <option value="SEND_FAILED">SEND_FAILED</option>
+          <option value="CANCELLED">CANCELLED</option>
+        </select>
+      </div>
+
+      <!-- Portal Filter -->
+      <div class="filter-item">
+        <label>Target Portal</label>
+        <select [(ngModel)]="selectedPortalId" (change)="onFilterChange()" class="form-control">
+          <option [ngValue]="null">All Portals</option>
+          @for (p of portals; track p.portal_id) {
+            <option [ngValue]="p.portal_id">{{ p.portal_name }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Date Range -->
+      <div class="filter-item">
+        <label>From Date</label>
+        <input type="date" [(ngModel)]="fromDate" (change)="onFilterChange()" class="form-control" />
+      </div>
+
+      <div class="filter-item">
+        <label>To Date</label>
+        <input type="date" [(ngModel)]="toDate" (change)="onFilterChange()" class="form-control" />
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="filter-actions">
+        <button (click)="onFilterChange()" class="btn btn-secondary">Filter</button>
+        <button (click)="resetFilters()" class="btn btn-outline">Reset</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- CAMPAIGN TABLE -->
+  <!-- ============================================================ -->
+  <div class="table-card">
+    <div class="table-header-bar">
+      <h3>
+        @if (isChecker) {
+          Checker Verification Queue ({{ totalCount }})
+        } @else if (isApprover) {
+          Approver Review Queue ({{ totalCount }})
+        } @else {
+          All Message Campaigns ({{ totalCount }})
+        }
+      </h3>
+      <span class="user-pill">
+        Active User: <strong>{{ currentUserId }}</strong> ({{ currentUserRole }})
+      </span>
+    </div>
+
+    @if (isLoading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading campaigns from database...</p>
+      </div>
+    } @else if (campaigns.length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h4>No campaigns found</h4>
+        <p>
+          @if (isChecker) {
+            There are currently no campaigns awaiting Checker verification.
+          } @else if (isApprover) {
+            There are currently no verified campaigns awaiting Approver sign-off.
+          } @else {
+            Try modifying your filter parameters or create your first broadcast campaign.
+          }
+        </p>
+        @if (canCreate()) {
+          <a routerLink="/campaigns/create" class="btn btn-primary btn-sm">Create New Campaign</a>
+        }
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Campaign Name & Message</th>
+              <th>Target Audience</th>
+              <th>Schedule / Maker</th>
+              <th>Workflow Status</th>
+              <th>Dispatches</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of campaigns; track c.campaign_id) {
+              <tr>
+                <!-- ID & Name -->
+                <td>
+                  <span class="id-badge">#{{ c.campaign_id }}</span>
+                </td>
+
+                <td>
+                  <div class="campaign-title">
+                    <strong>{{ c.campaign_name }}</strong>
+                    @if (c.campaign_description && c.campaign_description !== c.campaign_name && c.campaign_description !== (c.message_body || c.broadcast_message?.message_body)) {
+                      <p class="campaign-desc">{{ c.campaign_description }}</p>
+                    }
+                  </div>
+                  <div class="message-preview-tag">
+                    <span class="msg-icon">📢</span>
+                    <span class="msg-head">{{ c.message_head || c.broadcast_message?.message_head || c.campaign_name }}</span>
+                  </div>
+                  @if (c.message_body || c.broadcast_message?.message_body) {
+                    <p class="campaign-desc" style="color: #64748b; font-size: 0.8125rem; margin-top: 0.35rem; line-height: 1.4;">
+                      {{ (c.message_body || c.broadcast_message?.message_body) | slice:0:110 }}{{ (c.message_body || c.broadcast_message?.message_body) && (c.message_body || c.broadcast_message?.message_body)!.length > 110 ? '...' : '' }}
+                    </p>
+                  }
+                </td>
+
+                <!-- Target Audience -->
+                <td>
+                  <div class="target-chip-group">
+                    <span class="target-chip scope-chip">{{ c.target_scope }}</span>
+                    @if (c.portal_name) {
+                      <span class="target-chip portal-chip">{{ c.portal_name }}</span>
+                    }
+                    @if (c.user_type_name) {
+                      <span class="target-chip usertype-chip">{{ c.user_type_name }}</span>
+                    }
+                    @if (c.target_locations && c.target_locations.length > 0) {
+                      <span class="target-chip location-chip">{{ c.target_locations.length }} location(s)</span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Schedule / Timing -->
+                <td>
+                  <div class="timing-info">
+                    @if (c.scheduled_send_time) {
+                      <div class="timing-row">
+                        <span class="timing-label">Scheduled:</span>
+                        <span>{{ c.scheduled_send_time | date:'dd MMM yyyy, HH:mm' }}</span>
+                      </div>
+                    }
+                    @if (c.actual_send_time) {
+                      <div class="timing-row">
+                        <span class="timing-label">Dispatched:</span>
+                        <span>{{ c.actual_send_time | date:'dd MMM yyyy, HH:mm' }}</span>
+                      </div>
+                    }
+                    <div class="timing-row muted">
+                      <span class="timing-label">Maker:</span>
+                      <span>{{ c.created_by }}</span>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Workflow Status -->
+                <td>
+                  <div class="status-container">
+                    <span class="status-badge" [ngClass]="getStatusClass(c.campaign_status)">
+                      {{ normalizeStatus(c.campaign_status) }}
+                    </span>
+
+                    <div class="audit-flags">
+                      <span class="flag-pill" [class.flag-yes]="c.is_verified === 'Y'" [class.flag-no]="c.is_verified !== 'Y'">
+                        {{ c.is_verified === 'Y' ? '✓ Verified' : '○ Unverified' }}
+                      </span>
+                      <span class="flag-pill" [class.flag-yes]="c.is_approved === 'Y'" [class.flag-no]="c.is_approved !== 'Y'">
+                        {{ c.is_approved === 'Y' ? '✓ Approved' : '○ Unapproved' }}
+                      </span>
+                    </div>
+
+                    <!-- Rejection Reason Warning (if rejected) -->
+                    @if (c.rejection_reason) {
+                      <div class="rejection-reason-box" title="Reason for rejection">
+                        <strong>Rejection:</strong> {{ c.rejection_reason }}
+                      </div>
+                    }
+
+                    <!-- Checker Remarks (if verified) -->
+                    @if (c.verified_remarks && !c.rejection_reason) {
+                      <div class="ckr-remarks-box" title="Checker Remarks">
+                        <strong>CKR:</strong> {{ c.verified_remarks }}
+                      </div>
+                    }
+                  </div>
+                </td>
+
+                <!-- Dispatches -->
+                <td>
+                  <div class="dispatch-stats">
+                    <strong>{{ c.total_sent_success }}</strong> / {{ c.total_recipients_targeted }}
+                    @if (c.total_sent_failed > 0) {
+                      <span class="failed-pill">{{ c.total_sent_failed }} failed</span>
+                    }
+                    @if (c.total_skipped > 0) {
+                      <span class="skipped-pill">{{ c.total_skipped }} skipped</span>
+                    }
+                  </div>
+                </td>
+
+                <!-- Actions -->
+                <td class="text-right">
+                  <div class="action-btn-group">
+
+                    <!-- Verify Button (Checker only) -->
+                    @if (canVerify(c)) {
+                      <button (click)="openVerifyModal(c)" class="btn-action btn-verify" title="Verify Campaign">
+                        ✓ Verify / Reject
+                      </button>
+                    }
+
+                    <!-- Approve Button (Approver only) -->
+                    @if (canApprove(c)) {
+                      <button (click)="openApproveModal(c)" class="btn-action btn-approve" title="Approve Campaign">
+                        ★ Approve / Reject
+                      </button>
+                    }
+
+                    <!-- Send Button (Maker only, strictly when APPROVED) -->
+                    @if (canSend(c)) {
+                      <button (click)="sendNow(c)" class="btn-action btn-send" title="Dispatch Notifications Now">
+                        🚀 Send
+                      </button>
+                    }
+
+                    <!-- Edit / Resubmit Button (Maker only) -->
+                    @if (canEdit(c)) {
+                      <a [routerLink]="['/campaigns/edit', c.campaign_id]" class="btn-action btn-edit" title="Edit / Resubmit Campaign">
+                        ✎ {{ normalizeStatus(c.campaign_status).startsWith('REJECTED') ? 'Amend / Resubmit' : 'Edit' }}
+                      </a>
+                    }
+
+                    <!-- Cancel Button (Maker only) -->
+                    @if (canCancel(c)) {
+                      <button (click)="openCancelModal(c)" class="btn-action btn-cancel" title="Cancel Campaign">
+                        ✕ Cancel
+                      </button>
+                    }
+
+                    <!-- Delivery Report Button -->
+                    <button (click)="openReportModal(c)" class="btn-action btn-report" title="View Delivery Report">
+                      📊 Report
+                    </button>
+
+                    <!-- Audit Trail History Button (All Roles) -->
+                    <button (click)="openAuditModal(c)" class="btn-action btn-history" title="View Complete Audit History">
+                      🕒 Audit
+                    </button>
+
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-bar">
+        <span>Showing page {{ pageNumber }} of {{ totalPages }} ({{ totalCount }} items)</span>
+        <div class="pagination-controls">
+          <button [disabled]="pageNumber <= 1" (click)="goToPage(pageNumber - 1)" class="btn-page">‹ Previous</button>
+          <span class="page-num">{{ pageNumber }}</span>
+          <button [disabled]="pageNumber >= totalPages" (click)="goToPage(pageNumber + 1)" class="btn-page">Next ›</button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL: VERIFY CAMPAIGN (CHECKER) -->
+  <!-- ============================================================ -->
+  @if (showVerifyModal && activeCampaignForAction) {
+    <div class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h4>Checker Verification: Campaign #{{ activeCampaignForAction.campaign_id }}</h4>
+          <button class="modal-close" (click)="closeVerifyModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-intro">
+            Reviewing campaign: <strong>{{ activeCampaignForAction.campaign_name }}</strong>
+          </p>
+
+          <div class="notice-info">
+            <p><strong>Maker:</strong> {{ activeCampaignForAction.created_by }}</p>
+            <p><strong>Target Scope:</strong> {{ activeCampaignForAction.target_scope }}</p>
+            <p><strong>Message Head:</strong> {{ activeCampaignForAction.message_head || activeCampaignForAction.broadcast_message?.message_head || activeCampaignForAction.campaign_name }}</p>
+            @if (activeCampaignForAction.scheduled_send_time) {
+              <p><strong>Scheduled Time:</strong> {{ activeCampaignForAction.scheduled_send_time | date:'medium' }}</p>
+            }
+          </div>
+
+          <div class="form-group" style="margin-top: 15px;">
+            <label>Verification Decision <span class="text-danger">*</span></label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" [(ngModel)]="verifyDecision" value="Y" />
+                <span><strong>Verify</strong> & Advance to Approver Queue (PENDING_APPROVAL)</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" [(ngModel)]="verifyDecision" value="N" />
+                <span><strong>Reject</strong> Campaign (REJECTED_BY_CKR)</span>
+              </label>
+            </div>
+          </div>
+
+          @if (verifyDecision === 'N') {
+            <div class="form-group">
+              <label>Mandatory Rejection Reason <span class="text-danger">*</span></label>
+              <textarea
+                [(ngModel)]="verifyRejectionReason"
+                rows="3"
+                placeholder="Specify the exact reason for rejecting this campaign so the Maker can amend and resubmit..."
+                class="form-control"
+                style="border-color: #f87171;"></textarea>
+            </div>
+          }
+
+          <div class="form-group">
+            <label>Verification Remarks</label>
+            <textarea
+              [(ngModel)]="verifyRemarks"
+              rows="3"
+              placeholder="e.g. Target portal and notification body verified against departmental guidelines."
+              class="form-control"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="closeVerifyModal()">Cancel</button>
+          <button
+            class="btn"
+            [ngClass]="verifyDecision === 'Y' ? 'btn-primary' : 'btn-danger'"
+            [disabled]="isSubmittingAction"
+            (click)="submitVerify()">
+            {{ isSubmittingAction ? 'Submitting...' : (verifyDecision === 'Y' ? 'Confirm Verification' : 'Reject Campaign') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================ -->
+  <!-- MODAL: APPROVE CAMPAIGN (APPROVER) -->
+  <!-- ============================================================ -->
+  @if (showApproveModal && activeCampaignForAction) {
+    <div class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h4>Approver Review: Campaign #{{ activeCampaignForAction.campaign_id }}</h4>
+          <button class="modal-close" (click)="closeApproveModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-intro">
+            Final review for: <strong>{{ activeCampaignForAction.campaign_name }}</strong>
+          </p>
+
+          <div class="notice-info">
+            <p><strong>Maker:</strong> {{ activeCampaignForAction.created_by }}</p>
+            <p><strong>Checker:</strong> {{ activeCampaignForAction.verified_by || 'Verified' }} ({{ activeCampaignForAction.verified_date | date:'dd MMM yyyy, HH:mm' }})</p>
+            @if (activeCampaignForAction.verified_remarks) {
+              <p><strong>Checker Remarks:</strong> {{ activeCampaignForAction.verified_remarks }}</p>
+            }
+            <p><strong>Target Scope:</strong> {{ activeCampaignForAction.target_scope }}</p>
+            <p><strong>Scheduled Time:</strong> {{ activeCampaignForAction.scheduled_send_time ? (activeCampaignForAction.scheduled_send_time | date:'medium') : 'Ready for Maker dispatch upon approval' }}</p>
+          </div>
+
+          <div class="form-group" style="margin-top: 15px;">
+            <label>Approval Decision <span class="text-danger">*</span></label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" [(ngModel)]="approveDecision" value="Y" />
+                <span><strong>Approve</strong> Campaign for Dispatch (APPROVED)</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" [(ngModel)]="approveDecision" value="N" />
+                <span><strong>Reject</strong> Campaign (REJECTED_BY_APR)</span>
+              </label>
+            </div>
+          </div>
+
+          @if (approveDecision === 'N') {
+            <div class="form-group">
+              <label>Mandatory Rejection Reason <span class="text-danger">*</span></label>
+              <textarea
+                [(ngModel)]="approveRejectionReason"
+                rows="3"
+                placeholder="Specify the executive reason for rejection so the Maker can amend and resubmit..."
+                class="form-control"
+                style="border-color: #f87171;"></textarea>
+            </div>
+          }
+
+          <div class="form-group">
+            <label>Approval Remarks</label>
+            <textarea
+              [(ngModel)]="approveRemarks"
+              rows="3"
+              placeholder="e.g. Approved for mobile notification dispatch."
+              class="form-control"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="closeApproveModal()">Cancel</button>
+          <button
+            class="btn"
+            [ngClass]="approveDecision === 'Y' ? 'btn-primary' : 'btn-danger'"
+            [disabled]="isSubmittingAction"
+            (click)="submitApprove()">
+            {{ isSubmittingAction ? 'Submitting...' : (approveDecision === 'Y' ? 'Confirm Approval' : 'Reject Campaign') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================ -->
+  <!-- MODAL: AUDIT HISTORY -->
+  <!-- ============================================================ -->
+  @if (showAuditModal && activeCampaignForAudit) {
+    <div class="modal-backdrop">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div>
+            <h4>Audit Trail History</h4>
+            <p class="modal-subtitle">
+              Campaign #{{ activeCampaignForAudit.campaign_id }}: {{ activeCampaignForAudit.campaign_name }}
+            </p>
+          </div>
+          <button class="modal-close" (click)="closeAuditModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          @if (isLoadingAudit) {
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Loading audit log history from database...</p>
+            </div>
+          } @else if (auditHistory.length === 0) {
+            <p class="empty-logs">No audit records found for this campaign.</p>
+          } @else {
+            <div class="table-responsive">
+              <table class="audit-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Action</th>
+                    <th>Transition</th>
+                    <th>Performed By</th>
+                    <th>Role</th>
+                    <th>Date & Time</th>
+                    <th>Remarks / Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (log of auditHistory; track log.audit_id; let idx = $index) {
+                    <tr>
+                      <td>{{ idx + 1 }}</td>
+                      <td>
+                        <span class="action-chip"
+                          [class.act-created]="log.action === 'CREATED'"
+                          [class.act-submitted]="log.action === 'SUBMITTED' || log.action === 'RESUBMITTED_FOR_VERIFICATION'"
+                          [class.act-verified]="log.action === 'VERIFIED'"
+                          [class.act-approved]="log.action === 'APPROVED'"
+                          [class.act-rejected]="log.action.includes('REJECTED')"
+                          [class.act-send]="log.action.startsWith('SEND')">
+                          {{ log.action }}
+                        </span>
+                      </td>
+                      <td>
+                        <span>{{ log.from_status || 'None' }}</span>
+                        <span class="transition-arrow">→</span>
+                        <strong>{{ log.to_status }}</strong>
+                      </td>
+                      <td>{{ log.action_by }}</td>
+                      <td>
+                        <span class="platform-chip">{{ log.action_role || 'System' }}</span>
+                      </td>
+                      <td>{{ log.action_date | date:'dd MMM yyyy, HH:mm:ss' }}</td>
+                      <td>
+                        <span style="color: #334155; word-break: break-word;">{{ log.remarks || '—' }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeAuditModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================ -->
+  <!-- MODAL: CANCEL CAMPAIGN -->
+  <!-- ============================================================ -->
+  @if (showCancelModal && activeCampaignForAction) {
+    <div class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h4>Cancel Campaign #{{ activeCampaignForAction.campaign_id }}</h4>
+          <button class="modal-close" (click)="closeCancelModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-intro">
+            Are you sure you want to cancel campaign <strong>{{ activeCampaignForAction.campaign_name }}</strong>?
+          </p>
+
+          <div class="form-group">
+            <label>Cancellation Reason <span class="text-danger">*</span></label>
+            <textarea
+              [(ngModel)]="cancelReason"
+              rows="3"
+              placeholder="Please explain why this campaign is being cancelled..."
+              class="form-control"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" (click)="closeCancelModal()">Close</button>
+          <button
+            class="btn btn-danger"
+            [disabled]="isSubmittingAction"
+            (click)="submitCancel()">
+            {{ isSubmittingAction ? 'Cancelling...' : 'Confirm Cancellation' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================ -->
+  <!-- MODAL: DELIVERY REPORT -->
+  <!-- ============================================================ -->
+  @if (showReportModal) {
+    <div class="modal-backdrop">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div>
+            <h4>Campaign Delivery Report</h4>
+            @if (selectedReport) {
+              <p class="modal-subtitle">
+                #{{ selectedReport.campaign_id }} - {{ selectedReport.campaign_name }} ({{ selectedReport.campaign_status }})
+              </p>
+            }
+          </div>
+          <button class="modal-close" (click)="closeReportModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          @if (isLoadingReport) {
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Fetching delivery logs from SQL Server...</p>
+            </div>
+          } @else if (selectedReport) {
+
+            <!-- Summary Cards -->
+            <div class="report-cards-grid">
+              <div class="stat-card">
+                <span class="stat-num">{{ selectedReport.total_recipients_targeted }}</span>
+                <span class="stat-lbl">Targeted Recipients</span>
+              </div>
+
+              <div class="stat-card success-card">
+                <span class="stat-num">{{ selectedReport.total_sent_success }}</span>
+                <span class="stat-lbl">Accepted by FCM</span>
+              </div>
+
+              <div class="stat-card danger-card">
+                <span class="stat-num">{{ selectedReport.total_sent_failed }}</span>
+                <span class="stat-lbl">Failed Dispatches</span>
+              </div>
+
+              <div class="stat-card warning-card">
+                <span class="stat-num">{{ selectedReport.total_skipped }}</span>
+                <span class="stat-lbl">Skipped (No Token)</span>
+              </div>
+            </div>
+
+            <!-- Notice Details -->
+            <div class="report-notice-preview">
+              <h5>Notification Content Preview</h5>
+              <p><strong>Title:</strong> {{ selectedReport.message_head || 'N/A' }}</p>
+              <p><strong>Body:</strong> {{ selectedReport.message_body || 'N/A' }}</p>
+              <p class="muted">
+                <strong>Dispatched At:</strong>
+                {{ selectedReport.actual_send_time ? (selectedReport.actual_send_time | date:'medium') : 'Pending / Not Dispatched' }}
+              </p>
+            </div>
+
+            <!-- Recipient Logs -->
+            <div class="report-logs-section">
+              <div class="logs-header">
+                <h5>Individual Recipient Logs ({{ filteredReportLogs.length }})</h5>
+
+                <!-- Status Filter & Search -->
+                <div class="logs-filter-group">
+                  <select [(ngModel)]="reportStatusFilter" class="form-control-sm">
+                    <option value="ALL">All Outcomes</option>
+                    <option value="AcceptedByFcm">AcceptedByFcm</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Skipped">Skipped</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    [(ngModel)]="reportSearchTerm"
+                    placeholder="Search User or Device ID..."
+                    class="form-control-sm" />
+                </div>
+              </div>
+
+              @if (filteredReportLogs.length === 0) {
+                <p class="empty-logs">No individual recipient records match the selected filter.</p>
+              } @else {
+                <div class="logs-table-wrap">
+                  <table class="report-table">
+                    <thead>
+                      <tr>
+                        <th>Recipient</th>
+                        <th>Platform</th>
+                        <th>Outcome</th>
+                        <th>FCM Message ID / Error</th>
+                        <th>Dispatched (UTC)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (log of filteredReportLogs; track log.delivery_log_id) {
+                        <tr>
+                          <td>
+                            <strong>{{ log.user_id ? 'User #' + log.user_id : 'Device' }}</strong>
+                            <span class="dev-id">{{ log.device_id || 'N/A' }}</span>
+                          </td>
+                          <td>
+                            <span class="platform-chip">{{ log.platform || 'Android' }}</span>
+                          </td>
+                          <td>
+                            <span class="log-status" [ngClass]="'status-' + log.status.toLowerCase()">
+                              {{ log.status }}
+                            </span>
+                          </td>
+                          <td>
+                            @if (log.fcm_message_id) {
+                              <code class="fcm-id">{{ log.fcm_message_id }}</code>
+                            }
+                            @if (log.error_message) {
+                              <span class="err-msg">{{ log.error_code }}: {{ log.error_message }}</span>
+                            }
+                          </td>
+                          <td>
+                            <span class="time-cell">{{ log.sent_at_utc | date:'dd MMM yyyy, HH:mm:ss' }}</span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeReportModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>
