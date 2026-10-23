@@ -38,6 +38,27 @@ export class MessageService {
     );
   }
 
+  insertBroadcastMessageWithAttachments(
+    request: InsertBroadcastMessageRequest,
+    files: Partial<Record<'photo1' | 'photo2' | 'video' | 'document' | 'audio', File>>
+  ): Observable<InsertBroadcastMessageResponse> {
+    const formData = new FormData();
+    formData.append('message_head', request.message_head ?? '');
+    formData.append('message_body', request.message_body);
+    formData.append('mesg_type_id', String(request.mesg_type_id ?? ''));
+    formData.append('entryby', request.entryby ?? 'Admin');
+
+    (Object.keys(files) as Array<keyof typeof files>).forEach(type => {
+      const file = files[type];
+      if (file) formData.append(type, file, file.name);
+    });
+
+    return this.http.post<InsertBroadcastMessageResponse>(
+      `${this.apiUrl}/InsertBroadcastMessageWithAttachments`,
+      formData
+    );
+  }
+
   /**
    * Retrieves all active broadcast messages from SQL Server (tbl_BroadCastMessage).
    */

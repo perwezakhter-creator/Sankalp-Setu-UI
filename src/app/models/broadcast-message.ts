@@ -5,6 +5,7 @@ export interface InsertBroadcastMessageRequest {
   photo2path?: string;
   videopath?: string;
   documentpath?: string;
+  audiopath?: string;
   mesg_type_id?: number;
   entryby?: string;
   client_key?: string;
@@ -24,6 +25,7 @@ export interface BroadcastMessageData {
   photo2path?: string;
   videopath?: string;
   documentpath?: string;
+  audiopath?: string;
   entryby?: string;
   entrydate?: string;
   updatedby?: string;

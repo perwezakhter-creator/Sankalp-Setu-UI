@@ -113,88 +113,117 @@
         <section class="attachments-section" aria-labelledby="attachments-title">
           <div class="attachments-heading">
             <div>
-              <h4 id="attachments-title">Attachment Paths</h4>
-              <p>Enter optional server paths or public links. Files are not uploaded from this form.</p>
+              <h4 id="attachments-title">Attachments</h4>
+              <p>Select the attachment types you need, then choose the actual files to upload.</p>
             </div>
           </div>
 
           <div class="attachment-grid">
             <div class="attachment-path-field">
               <label class="attachment-toggle">
-                <input type="checkbox" [checked]="attachmentEnabled.photo1path" (change)="toggleAttachment('photo1path', $event)" />
+                <input type="checkbox" [checked]="attachmentEnabled.photo" (change)="toggleAttachment('photo', $event)" />
                 <span class="attachment-icon" aria-hidden="true">▧</span>
-                <span>Photo Path / Link</span>
+                <span>Photo</span>
               </label>
-              @if (attachmentEnabled.photo1path) {
-                <input
-                  id="noticePhoto"
-                  type="text"
-                  class="attachment-path-input"
-                  formControlName="photo1path"
-                  maxlength="2048"
-                  placeholder="e.g. /uploads/notices/photo.jpg or https://example.com/photo.jpg" />
-                @if (broadcastForm.get('photo1path')?.hasError('maxlength')) {
-                  <small class="error-text">Photo path must not exceed 2048 characters.</small>
+              @if (attachmentEnabled.photo) {
+                <div class="photo-upload-grid">
+                  <div>
+                    <input
+                      id="noticePhotoFile1"
+                      type="file"
+                      class="attachment-file-input"
+                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      (change)="onPhotoSelected($event, 1)" />
+                    <label for="noticePhotoFile1" class="photo-upload-slot">
+                      <span class="photo-add-icon" aria-hidden="true">{{ attachmentFiles.photo ? '✓' : '+' }}</span>
+                      <strong>{{ attachmentFiles.photo?.name || 'Photo 1' }}</strong>
+                    </label>
+                  </div>
+                  <div>
+                    <input
+                      id="noticePhotoFile2"
+                      type="file"
+                      class="attachment-file-input"
+                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      (change)="onPhotoSelected($event, 2)" />
+                    <label for="noticePhotoFile2" class="photo-upload-slot">
+                      <span class="photo-add-icon" aria-hidden="true">{{ secondPhotoFile ? '✓' : '+' }}</span>
+                      <strong>{{ secondPhotoFile?.name || 'Photo 2' }}</strong>
+                    </label>
+                  </div>
+                </div>
+                <small class="attachment-rule-text">Both photos are required · JPG, PNG or WEBP · Max 5 MB each</small>
+                @if (attachmentErrors.photo) {
+                  <small class="error-text">{{ attachmentErrors.photo }}</small>
                 }
               }
             </div>
 
             <div class="attachment-path-field">
               <label class="attachment-toggle">
-                <input type="checkbox" [checked]="attachmentEnabled.videopath" (change)="toggleAttachment('videopath', $event)" />
+                <input type="checkbox" [checked]="attachmentEnabled.video" (change)="toggleAttachment('video', $event)" />
                 <span class="attachment-icon" aria-hidden="true">▶</span>
-                <span>Video Path / Link</span>
+                <span>Video</span>
               </label>
-              @if (attachmentEnabled.videopath) {
+              @if (attachmentEnabled.video) {
                 <input
-                  id="noticeVideo"
-                  type="text"
-                  class="attachment-path-input"
-                  formControlName="videopath"
-                  maxlength="2048"
-                  placeholder="e.g. /uploads/notices/video.mp4 or https://example.com/video.mp4" />
-                @if (broadcastForm.get('videopath')?.hasError('maxlength')) {
-                  <small class="error-text">Video path must not exceed 2048 characters.</small>
+                  id="noticeVideoFile"
+                  type="file"
+                  class="attachment-file-input"
+                  accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime"
+                  (change)="onAttachmentSelected($event, 'video')" />
+                <label for="noticeVideoFile" class="attachment-file-picker">
+                  <span class="upload-icon" aria-hidden="true">↑</span>
+                  <span><strong>{{ attachmentFiles.video?.name || 'Choose video' }}</strong><small>MP4, WEBM or MOV · Max 25 MB</small></span>
+                </label>
+                @if (attachmentErrors.video) {
+                  <small class="error-text">{{ attachmentErrors.video }}</small>
                 }
               }
             </div>
 
             <div class="attachment-path-field">
               <label class="attachment-toggle">
-                <input type="checkbox" [checked]="attachmentEnabled.documentpath" (change)="toggleAttachment('documentpath', $event)" />
+                <input type="checkbox" [checked]="attachmentEnabled.document" (change)="toggleAttachment('document', $event)" />
                 <span class="attachment-icon" aria-hidden="true">▤</span>
-                <span>File Path / Link</span>
+                <span>File / Document</span>
               </label>
-              @if (attachmentEnabled.documentpath) {
+              @if (attachmentEnabled.document) {
                 <input
-                  id="noticeDocument"
-                  type="text"
-                  class="attachment-path-input"
-                  formControlName="documentpath"
-                  maxlength="2048"
-                  placeholder="e.g. /uploads/notices/document.pdf or https://example.com/document.pdf" />
-                @if (broadcastForm.get('documentpath')?.hasError('maxlength')) {
-                  <small class="error-text">File path must not exceed 2048 characters.</small>
+                  id="noticeDocumentFile"
+                  type="file"
+                  class="attachment-file-input"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                  (change)="onAttachmentSelected($event, 'document')" />
+                <label for="noticeDocumentFile" class="attachment-file-picker">
+                  <span class="upload-icon" aria-hidden="true">↑</span>
+                  <span><strong>{{ attachmentFiles.document?.name || 'Choose file' }}</strong><small>PDF, Office, TXT or CSV · Max 10 MB</small></span>
+                </label>
+                @if (attachmentErrors.document) {
+                  <small class="error-text">{{ attachmentErrors.document }}</small>
                 }
               }
             </div>
 
             <div class="attachment-path-field">
               <label class="attachment-toggle">
-                <input type="checkbox" [checked]="attachmentEnabled.audiopath" (change)="toggleAttachment('audiopath', $event)" />
+                <input type="checkbox" [checked]="attachmentEnabled.audio" (change)="toggleAttachment('audio', $event)" />
                 <span class="attachment-icon" aria-hidden="true">♪</span>
-                <span>Audio Path / Link</span>
+                <span>Audio</span>
               </label>
-              @if (attachmentEnabled.audiopath) {
+              @if (attachmentEnabled.audio) {
                 <input
-                  id="noticeAudio"
-                  type="text"
-                  class="attachment-path-input"
-                  formControlName="audiopath"
-                  maxlength="2048"
-                  placeholder="e.g. /uploads/notices/audio.mp3 or https://example.com/audio.mp3" />
-                @if (broadcastForm.get('audiopath')?.hasError('maxlength')) {
-                  <small class="error-text">Audio path must not exceed 2048 characters.</small>
+                  id="noticeAudioFile"
+                  type="file"
+                  class="attachment-file-input"
+                  accept=".mp3,.wav,.m4a,.aac,.ogg,audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg"
+                  (change)="onAttachmentSelected($event, 'audio')" />
+                <label for="noticeAudioFile" class="attachment-file-picker">
+                  <span class="upload-icon" aria-hidden="true">↑</span>
+                  <span><strong>{{ attachmentFiles.audio?.name || 'Choose audio' }}</strong><small>MP3, WAV, M4A, AAC or OGG · Max 10 MB</small></span>
+                </label>
+                @if (attachmentErrors.audio) {
+                  <small class="error-text">{{ attachmentErrors.audio }}</small>
                 }
               }
             </div>

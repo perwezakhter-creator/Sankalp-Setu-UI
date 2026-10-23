@@ -417,42 +417,128 @@ textarea.form-control {
   cursor: pointer;
 }
 
-.attachment-path-input {
-  display: block;
-  width: 100%;
-  height: 40px;
-  padding: 0 12px;
+.attachment-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.photo-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.photo-upload-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 8px 10px;
   box-sizing: border-box;
-  border: 1px solid #cbd9d3;
-  border-radius: 7px;
-  outline: none;
-  background: #f9fcfa;
-  color: #1f2937;
-  font-family: inherit;
-  font-size: 12px;
-  line-height: 40px;
+  border: 1px dashed #9fc7b8;
+  border-radius: 8px;
+  background: #f7fbf9;
+  color: #334155;
+  cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.attachment-path-input::placeholder {
-  color: #94a3b8;
-  opacity: 1;
-}
-
-.attachment-path-input:hover {
-  border-color: #9dbbb0;
-  background: #ffffff;
-}
-
-.attachment-path-input:focus {
+.photo-upload-slot:hover,
+.attachment-file-input:focus-visible + .photo-upload-slot {
   border-color: #247d66;
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(36, 125, 102, 0.12);
+  box-shadow: 0 0 0 3px rgba(36, 125, 102, 0.1);
 }
 
-.attachment-path-input.ng-invalid.ng-touched {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
+.photo-upload-slot strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-add-icon {
+  display: inline-flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #dff3e9;
+  color: #1e6d58;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.attachment-rule-text {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 9px;
+}
+
+.attachment-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 1px dashed #9fc7b8;
+  border-radius: 8px;
+  background: #f7fbf9;
+  color: #334155;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attachment-file-picker:hover,
+.attachment-file-input:focus-visible + .attachment-file-picker {
+  border-color: #247d66;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(36, 125, 102, 0.1);
+}
+
+.attachment-file-picker strong,
+.attachment-file-picker small {
+  display: block;
+}
+
+.attachment-file-picker strong {
+  max-width: 260px;
+  overflow: hidden;
+  color: #1f2937;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-file-picker small {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.upload-icon {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: #dff3e9;
+  color: #1e6d58;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 .attachment-icon {
