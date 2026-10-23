@@ -64,7 +64,13 @@
             placeholder="e.g. Agriculture Alert: Monsoon Guidelines for Farmers"
             class="form-control" />
           @if (broadcastForm.get('message_head')?.touched && broadcastForm.get('message_head')?.invalid) {
-            <small class="error-text">Notice title is required (max 255 characters).</small>
+            @if (broadcastForm.get('message_head')?.hasError('required')) {
+              <small class="error-text">Notice title is required.</small>
+            } @else if (broadcastForm.get('message_head')?.hasError('minlength')) {
+              <small class="error-text">Notice title must contain at least 3 characters.</small>
+            } @else if (broadcastForm.get('message_head')?.hasError('maxlength')) {
+              <small class="error-text">Notice title must not exceed 255 characters.</small>
+            }
           }
         </div>
 
@@ -78,117 +84,122 @@
             placeholder="Enter full notice or guideline content for citizen applicants..."
             class="form-control"></textarea>
           @if (broadcastForm.get('message_body')?.touched && broadcastForm.get('message_body')?.invalid) {
-            <small class="error-text">Message body is required.</small>
+            @if (broadcastForm.get('message_body')?.hasError('required')) {
+              <small class="error-text">Message body is required.</small>
+            } @else if (broadcastForm.get('message_body')?.hasError('minlength')) {
+              <small class="error-text">Message body must contain at least 10 characters.</small>
+            }
           }
         </div>
 
-        <!-- Portal -->
+        </div>
+
         <div class="form-group">
-          <label for="portal">Portal</label>
+          <label for="messageType">Message Type <span class="text-danger">*</span></label>
           <app-select-dropdown
-            id="portal"
-            formControlName="portal_id"
-            [options]="portalOptions"
-            placeholder="-- Select Portal --"
-            (changed)="onPortalChange()">
+            id="messageType"
+            formControlName="mesg_type_id"
+            [options]="messageTypeOptions"
+            placeholder="-- Select Message Type --">
           </app-select-dropdown>
-          @if (portalLoading) {
-            <small class="hint-text">Loading portals...</small>
+          @if (messageTypesLoading) {
+            <small class="hint-text">Loading message types...</small>
           }
-          @if (portalError && !portalLoading) {
-            <small class="error-text">{{ portalError }}</small>
-          }
-        </div>
-
-        <!-- User Type -->
-        <div class="form-group">
-          <label for="userType">User Type</label>
-          <app-select-dropdown
-            id="userType"
-            formControlName="user_type_id"
-            [options]="userTypeOptions"
-            placeholder="-- Select User Type --">
-          </app-select-dropdown>
-          @if (userTypesLoading) {
-            <small class="hint-text">Loading user types...</small>
-          }
-          @if (userTypesError && !userTypesLoading) {
-            <small class="error-text">{{ userTypesError }}</small>
+          @if (messageTypesError && !messageTypesLoading) {
+            <small class="error-text">{{ messageTypesError }}</small>
           }
         </div>
 
-        </div>
-
-        <div class="district-targeting-control">
-          <label class="district-toggle">
-            <input
-              type="checkbox"
-              formControlName="is_all_district"
-              (change)="onAllDistrictChange($event)" />
-            <span>All districts</span>
-          </label>
-          @if (broadcastForm.get('is_all_district')?.value === false) {
-            <button type="button" class="btn-select-districts" (click)="openDistrictSelector()">
-              {{ selectedDistrictCodes.length ? selectedDistrictCodes.length + ' district(s) selected' : 'Select districts' }}
-            </button>
-          } @else {
-            <span class="district-targeting-hint">This notice will be available across all districts.</span>
-          }
-        </div>
-
-        <!-- Validity & Quick Presets -->
-        <div class="form-row">
-          <div class="form-group col">
-            <label for="validity">Validity Duration (Minutes) <span class="text-danger">*</span></label>
-            <input
-              id="validity"
-              type="number"
-              formControlName="validity_in_minutes"
-              class="form-control" />
-            <div class="quick-presets">
-              <span class="preset-label">Quick:</span>
-              <button type="button" class="btn-preset" (click)="setValidityQuick(60)">1 Hour</button>
-              <button type="button" class="btn-preset" (click)="setValidityQuick(720)">12 Hours</button>
-              <button type="button" class="btn-preset" (click)="setValidityQuick(1440)">24 Hours</button>
-              <button type="button" class="btn-preset" (click)="setValidityQuick(10080)">7 Days</button>
+        <section class="attachments-section" aria-labelledby="attachments-title">
+          <div class="attachments-heading">
+            <div>
+              <h4 id="attachments-title">Attachment Paths</h4>
+              <p>Enter optional server paths or public links. Files are not uploaded from this form.</p>
             </div>
           </div>
 
-          <div class="form-group message-type-col">
-            <label for="messageType">Message Type <span class="text-danger">*</span></label>
-            <app-select-dropdown
-              id="messageType"
-              formControlName="mesg_type_id"
-              [options]="messageTypeOptions"
-              placeholder="-- Select Message Type --">
-            </app-select-dropdown>
-            @if (messageTypesLoading) {
-              <small class="hint-text">Loading message types...</small>
-            }
-            @if (messageTypesError && !messageTypesLoading) {
-              <small class="error-text">{{ messageTypesError }}</small>
-            }
-          </div>
+          <div class="attachment-grid">
+            <div class="attachment-path-field">
+              <label class="attachment-toggle">
+                <input type="checkbox" [checked]="attachmentEnabled.photo1path" (change)="toggleAttachment('photo1path', $event)" />
+                <span class="attachment-icon" aria-hidden="true">▧</span>
+                <span>Photo Path / Link</span>
+              </label>
+              @if (attachmentEnabled.photo1path) {
+                <input
+                  id="noticePhoto"
+                  type="text"
+                  class="attachment-path-input"
+                  formControlName="photo1path"
+                  maxlength="2048"
+                  placeholder="e.g. /uploads/notices/photo.jpg or https://example.com/photo.jpg" />
+                @if (broadcastForm.get('photo1path')?.hasError('maxlength')) {
+                  <small class="error-text">Photo path must not exceed 2048 characters.</small>
+                }
+              }
+            </div>
 
-          <div class="form-group col-small">
-            <label for="active">Notice Status</label>
-            <select id="active" formControlName="is_active" class="form-control">
-              <option value="Y">Active (Y)</option>
-              <option value="N">Inactive (N)</option>
-            </select>
-          </div>
-        </div>
+            <div class="attachment-path-field">
+              <label class="attachment-toggle">
+                <input type="checkbox" [checked]="attachmentEnabled.videopath" (change)="toggleAttachment('videopath', $event)" />
+                <span class="attachment-icon" aria-hidden="true">▶</span>
+                <span>Video Path / Link</span>
+              </label>
+              @if (attachmentEnabled.videopath) {
+                <input
+                  id="noticeVideo"
+                  type="text"
+                  class="attachment-path-input"
+                  formControlName="videopath"
+                  maxlength="2048"
+                  placeholder="e.g. /uploads/notices/video.mp4 or https://example.com/video.mp4" />
+                @if (broadcastForm.get('videopath')?.hasError('maxlength')) {
+                  <small class="error-text">Video path must not exceed 2048 characters.</small>
+                }
+              }
+            </div>
 
-        <!-- Media Link (Optional) -->
-        <div class="form-group">
-          <label for="photo">Banner Image URL (Optional)</label>
-          <input
-            id="photo"
-            type="text"
-            formControlName="photo1path"
-            placeholder="https://health.bihar.gov.in/images/alert.jpg"
-            class="form-control" />
-        </div>
+            <div class="attachment-path-field">
+              <label class="attachment-toggle">
+                <input type="checkbox" [checked]="attachmentEnabled.documentpath" (change)="toggleAttachment('documentpath', $event)" />
+                <span class="attachment-icon" aria-hidden="true">▤</span>
+                <span>File Path / Link</span>
+              </label>
+              @if (attachmentEnabled.documentpath) {
+                <input
+                  id="noticeDocument"
+                  type="text"
+                  class="attachment-path-input"
+                  formControlName="documentpath"
+                  maxlength="2048"
+                  placeholder="e.g. /uploads/notices/document.pdf or https://example.com/document.pdf" />
+                @if (broadcastForm.get('documentpath')?.hasError('maxlength')) {
+                  <small class="error-text">File path must not exceed 2048 characters.</small>
+                }
+              }
+            </div>
+
+            <div class="attachment-path-field">
+              <label class="attachment-toggle">
+                <input type="checkbox" [checked]="attachmentEnabled.audiopath" (change)="toggleAttachment('audiopath', $event)" />
+                <span class="attachment-icon" aria-hidden="true">♪</span>
+                <span>Audio Path / Link</span>
+              </label>
+              @if (attachmentEnabled.audiopath) {
+                <input
+                  id="noticeAudio"
+                  type="text"
+                  class="attachment-path-input"
+                  formControlName="audiopath"
+                  maxlength="2048"
+                  placeholder="e.g. /uploads/notices/audio.mp3 or https://example.com/audio.mp3" />
+                @if (broadcastForm.get('audiopath')?.hasError('maxlength')) {
+                  <small class="error-text">Audio path must not exceed 2048 characters.</small>
+                }
+              }
+            </div>
+          </div>
+        </section>
 
         <!-- Submit Button -->
         <div class="form-actions">
@@ -207,58 +218,6 @@
 
       </form>
 
-      @if (showDistrictSelector) {
-        <div class="district-modal-backdrop" (click)="closeDistrictSelector()">
-          <section class="district-modal" role="dialog" aria-modal="true" aria-labelledby="district-modal-title" (click)="$event.stopPropagation()">
-            <header class="district-modal-header">
-              <div>
-                <h3 id="district-modal-title">Select Districts</h3>
-                <p>Choose the districts that should receive this broadcast notice.</p>
-              </div>
-              <button type="button" class="district-modal-close" (click)="closeDistrictSelector()" aria-label="Close district selection">&times;</button>
-            </header>
-
-            <div class="district-modal-content">
-              <input
-                type="search"
-                class="form-control district-search"
-                [value]="districtSearchTerm"
-                (input)="districtSearchTerm = $any($event.target).value"
-                placeholder="Search by district name or code" />
-
-              @if (districtsLoading) {
-                <div class="district-loading"><span class="spinner-small"></span> Loading districts...</div>
-              } @else if (districtsError) {
-                <p class="error-text">{{ districtsError }}</p>
-              } @else {
-                <label class="district-option select-all-districts">
-                  <input type="checkbox" [checked]="allPendingDistrictsSelected" (change)="toggleAllDistricts($event)" />
-                  <strong>Select all districts</strong>
-                </label>
-                <div class="district-option-list">
-                  @for (district of filteredDistricts; track district.code) {
-                    <label class="district-option">
-                      <input type="checkbox" [checked]="isDistrictPending(district.code)" (change)="toggleDistrict(district.code, $event)" />
-                      <span>{{ district.name }} <small>({{ district.code }})</small></span>
-                    </label>
-                  } @empty {
-                    <p class="district-empty">No districts match your search.</p>
-                  }
-                </div>
-              }
-
-              @if (districtSelectionError) {
-                <p class="error-text">{{ districtSelectionError }}</p>
-              }
-            </div>
-
-            <footer class="district-modal-actions">
-              <button type="button" class="btn-refresh btn-cancel" (click)="closeDistrictSelector()">Cancel</button>
-              <button type="button" class="btn-submit district-save-btn" (click)="saveDistrictSelection()" [disabled]="districtsLoading || !!districtsError">Save districts</button>
-            </footer>
-          </section>
-        </div>
-      }
     </dialog>
 
 

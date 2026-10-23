@@ -20,7 +20,9 @@ import { GroupSubgroupComponent } from './components/group-subgroup/group-subgro
 import { SendBroadcastComponent } from './components/send-broadcast/send-broadcast';
 import { CampaignFormComponent } from './components/campaign-form/campaign-form';
 import { CampaignListComponent } from './components/campaign-list/campaign-list';
+import { DraftMessageComponent } from './components/draft-message/draft-message';
 import { authGuard } from './guards/auth-guard';
+import { draftMessageRoleGuard } from './guards/draft-message-role-guard';
 
 export const routes: Routes = [
 
@@ -109,6 +111,12 @@ export const routes: Routes = [
       {
         path: 'broadcast',
         component: BroadcastComponent
+      },
+
+      {
+        path: 'draft-messages',
+        component: DraftMessageComponent,
+        canActivate: [draftMessageRoleGuard]
       },
 
       {

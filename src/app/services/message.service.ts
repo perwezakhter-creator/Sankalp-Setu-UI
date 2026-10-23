@@ -3,7 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   InsertBroadcastMessageRequest,
-  InsertBroadcastMessageResponse
+  InsertBroadcastMessageResponse,
+  ForwardDraftMessagesResponse,
+  UpdateBroadcastVerificationResponse
 } from '../models/broadcast-message';
 import {
   InsertInterestWiseMessageRequest,
@@ -47,6 +49,36 @@ export class MessageService {
 
   getMessageTypes(): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/GetMessageType`, {});
+  }
+
+  forwardDraftMessages(bmsgIds: number[]): Observable<ForwardDraftMessagesResponse> {
+    return this.http.post<ForwardDraftMessagesResponse>(`${this.apiUrl}/ForwardDraftMessages`, {
+      bmsg_ids: bmsgIds,
+      user_role: localStorage.getItem('Role') || '',
+      action_by: localStorage.getItem('UserId') || localStorage.getItem('UserName') || ''
+    });
+  }
+
+  updateBroadcastVerification(
+    bmsgId: number,
+    isVerified: boolean
+  ): Observable<UpdateBroadcastVerificationResponse> {
+    return this.http.post<UpdateBroadcastVerificationResponse>(`${this.apiUrl}/IsVerified`, {
+      Bmsg_id: bmsgId,
+      IsVerified: isVerified,
+      VerifiedBy: localStorage.getItem('UserId') || localStorage.getItem('UserName') || 'Checker'
+    });
+  }
+
+  updateBroadcastApproval(
+    bmsgId: number,
+    isApproved: boolean
+  ): Observable<UpdateBroadcastVerificationResponse> {
+    return this.http.post<UpdateBroadcastVerificationResponse>(`${this.apiUrl}/IsApproved`, {
+      Bmsg_id: bmsgId,
+      IsApproved: isApproved,
+      ApprovedBy: localStorage.getItem('UserId') || localStorage.getItem('UserName') || 'Approver'
+    });
   }
 
   /**

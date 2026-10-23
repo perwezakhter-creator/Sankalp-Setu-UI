@@ -10,8 +10,8 @@
           </svg>
         </div>
       </div>
-      <h3 class="user-fullname">Welcome Admin</h3>
-      <span class="user-email">admin@jjhm.gov.in</span>
+      <h3 class="user-fullname">Welcome {{ roleDisplayName }}</h3>
+      <span class="user-email">{{ loggedInUserName }}</span>
     </div>
 
     <!-- Sidebar Toggle (collapses / expands the sidebar) -->
@@ -69,6 +69,22 @@
           </svg>
         </div>
         <span class="nav-label" *ngIf="!collapsed">Broadcast Notices</span>
+      </div>
+
+     
+      <div
+        *ngIf="canViewDraftMessages"
+        class="nav-item"
+        [class.active]="isActive('/draft-messages')"
+        (click)="openDraftMessages()"
+        title="Draft Message">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16v16H4z"></path>
+            <path d="M8 8h8M8 12h8M8 16h5"></path>
+          </svg>
+        </div>
+        <span class="nav-label" *ngIf="!collapsed">Draft Message</span>
       </div>
 
       <div class="nav-item" [class.active]="isActive('/send-broadcast')" (click)="openSendBroadcast()" title="Send Broadcast">
