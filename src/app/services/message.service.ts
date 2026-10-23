@@ -3,7 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   InsertBroadcastMessageRequest,
-  InsertBroadcastMessageResponse
+  InsertBroadcastMessageResponse,
+  ForwardDraftMessagesResponse,
+  UpdateBroadcastVerificationResponse
 } from '../models/broadcast-message';
 import {
   InsertInterestWiseMessageRequest,
@@ -36,6 +38,27 @@ export class MessageService {
     );
   }
 
+  insertBroadcastMessageWithAttachments(
+    request: InsertBroadcastMessageRequest,
+    files: Partial<Record<'photo1' | 'photo2' | 'video' | 'document' | 'audio', File>>
+  ): Observable<InsertBroadcastMessageResponse> {
+    const formData = new FormData();
+    formData.append('message_head', request.message_head ?? '');
+    formData.append('message_body', request.message_body);
+    formData.append('mesg_type_id', String(request.mesg_type_id ?? ''));
+    formData.append('entryby', request.entryby ?? 'Admin');
+
+    (Object.keys(files) as Array<keyof typeof files>).forEach(type => {
+      const file = files[type];
+      if (file) formData.append(type, file, file.name);
+    });
+
+    return this.http.post<InsertBroadcastMessageResponse>(
+      `${this.apiUrl}/InsertBroadcastMessageWithAttachments`,
+      formData
+    );
+  }
+
   /**
    * Retrieves all active broadcast messages from SQL Server (tbl_BroadCastMessage).
    */
@@ -47,6 +70,36 @@ export class MessageService {
 
   getMessageTypes(): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/GetMessageType`, {});
+  }
+
+  forwardDraftMessages(bmsgIds: number[]): Observable<ForwardDraftMessagesResponse> {
+    return this.http.post<ForwardDraftMessagesResponse>(`${this.apiUrl}/ForwardDraftMessages`, {
+      bmsg_ids: bmsgIds,
+      user_role: localStorage.getItem('Role') || '',
+      action_by: localStorage.getItem('UserId') || localStorage.getItem('UserName') || ''
+    });
+  }
+
+  updateBroadcastVerification(
+    bmsgId: number,
+    isVerified: boolean
+  ): Observable<UpdateBroadcastVerificationResponse> {
+    return this.http.post<UpdateBroadcastVerificationResponse>(`${this.apiUrl}/IsVerified`, {
+      Bmsg_id: bmsgId,
+      IsVerified: isVerified,
+      VerifiedBy: localStorage.getItem('UserId') || localStorage.getItem('UserName') || 'Checker'
+    });
+  }
+
+  updateBroadcastApproval(
+    bmsgId: number,
+    isApproved: boolean
+  ): Observable<UpdateBroadcastVerificationResponse> {
+    return this.http.post<UpdateBroadcastVerificationResponse>(`${this.apiUrl}/IsApproved`, {
+      Bmsg_id: bmsgId,
+      IsApproved: isApproved,
+      ApprovedBy: localStorage.getItem('UserId') || localStorage.getItem('UserName') || 'Approver'
+    });
   }
 
   /**

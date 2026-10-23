@@ -1,0 +1,140 @@
+<div class="draft-page">
+  <header class="page-header">
+    <div>
+      <div class="title-row">
+        <h2>Draft Messages</h2>
+        <span class="role-badge">{{ roleDisplayName }}</span>
+      </div>
+      <p>{{ queueDescription }}</p>
+    </div>
+
+    <button type="button" class="btn btn-outline" (click)="loadMessages()" [disabled]="loading || forwarding">
+      <span [class.spinning]="loading">↻</span> Refresh
+    </button>
+  </header>
+
+  @if (successMessage) {
+    <div class="alert alert-success" role="status">✓ {{ successMessage }}</div>
+  }
+  @if (errorMessage) {
+    <div class="alert alert-error" role="alert">⚠ {{ errorMessage }}</div>
+  }
+
+  <section class="draft-card">
+    <div class="card-toolbar">
+      <div>
+        <h3>{{ stageLabel }} Queue</h3>
+        <span>{{ messages.length }} message(s)</span>
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-forward"
+        (click)="forwardSelected()"
+        [disabled]="selectedCount === 0 || forwarding">
+        @if (forwarding) {
+          <span class="spinner"></span> Processing...
+        } @else {
+          @if (isChecker) {
+            Verify selected ({{ selectedCount }}) → Approver
+          } @else if (isApprover) {
+            Approve selected ({{ selectedCount }})
+          } @else {
+            Forward selected ({{ selectedCount }}) → {{ destinationLabel }}
+          }
+        }
+      </button>
+    </div>
+
+    @if (loading) {
+      <div class="state-panel">
+        <span class="loader"></span>
+        <p>Loading messages...</p>
+      </div>
+    } @else if (!messages.length) {
+      <div class="state-panel empty-state">
+        <span class="empty-icon">✓</span>
+        <h4>No pending messages</h4>
+        <p>Your {{ stageLabel.toLowerCase() }} queue is clear.</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="draft-table">
+          <thead>
+            <tr>
+              <th class="check-column">
+                <input
+                  type="checkbox"
+                  [checked]="allSelected"
+                  [indeterminate]="hasPartialSelection"
+                  (change)="toggleAll($event)"
+                  aria-label="Select all draft messages" />
+              </th>
+              <th>ID</th>
+              <th>Message</th>
+              <th>Entry By</th>
+              <th>Created Date</th>
+              <th>Scope</th>
+              <th>Status</th>
+              <th class="action-column">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (message of messages; track message.bmsg_id) {
+              <tr [class.selected-row]="isSelected(message.bmsg_id)">
+                <td class="check-column">
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(message.bmsg_id)"
+                    (change)="toggleMessage(message.bmsg_id, $event)"
+                    [attr.aria-label]="'Select message ' + message.bmsg_id" />
+                </td>
+                <td><span class="id-chip">#{{ message.bmsg_id }}</span></td>
+                <td class="message-cell">
+                  <strong>{{ message.message_head || 'Untitled message' }}</strong>
+                  <span [title]="message.message_body">{{ message.message_body }}</span>
+                  @if (message.photo1path || message.photo2path || message.videopath || message.documentpath) {
+                    <small>📎 Contains attachment(s)</small>
+                  }
+                  @if (isReturnedMessage(message)) {
+                    <small class="returned-note">↩ {{ returnedMessageLabel(message) }}</small>
+                  }
+                </td>
+                <td>{{ message.entryby || '—' }}</td>
+                <td>{{ message.entrydate ? (message.entrydate | date:'dd MMM yyyy, h:mm a') : '—' }}</td>
+                <td>
+                  <span class="scope-chip">{{ message.is_all_district === 'N' ? 'Selected districts' : 'All districts' }}</span>
+                </td>
+                <td>
+                  <span class="status-chip" [class.returned-status]="isReturnedMessage(message)">
+                    {{ statusLabelFor(message) }}
+                  </span>
+                </td>
+                <td class="action-column">
+                  <div class="action-buttons">
+                    <button
+                      type="button"
+                      class="btn btn-row-forward"
+                      (click)="forwardOne(message)"
+                      [disabled]="forwarding">
+                      {{ isChecker ? 'Verify' : (isApprover ? 'Approve' : 'Forward') }}
+                    </button>
+                    @if (isChecker || isApprover) {
+                      <button
+                        type="button"
+                        class="btn btn-return"
+                        (click)="returnForCorrection(message)"
+                        [disabled]="forwarding">
+                        Return for Correction
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>

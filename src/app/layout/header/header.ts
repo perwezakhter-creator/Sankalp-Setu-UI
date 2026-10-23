@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { getRoleDisplayName } from '../../utils/role-display';
 
 @Component({
   selector: 'app-header',
@@ -12,6 +13,7 @@ import { Router } from '@angular/router';
 export class Header {
   @Input() collapsed = false;
   @Output() toggle = new EventEmitter<void>();
+  readonly roleDisplayName = getRoleDisplayName(localStorage.getItem('Role'));
 
   constructor(private router: Router) {}
 

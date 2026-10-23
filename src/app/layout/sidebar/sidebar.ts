@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { getRoleDisplayName } from '../../utils/role-display';
 
 @Component({
   selector: 'app-sidebar',
@@ -12,6 +13,10 @@ import { Router } from '@angular/router';
 export class Sidebar {
   @Input() collapsed = false;
   @Output() toggle = new EventEmitter<void>();
+  readonly roleDisplayName = getRoleDisplayName(localStorage.getItem('Role'));
+  readonly loggedInUserName = localStorage.getItem('UserName')?.trim() || this.roleDisplayName;
+  readonly canViewDraftMessages = ['MKR', 'MAKER', 'CKR', 'CHECKER', 'APR', 'APPROVER']
+    .includes((localStorage.getItem('Role') || '').trim().toUpperCase());
 
   private router = inject(Router);
 
@@ -41,6 +46,10 @@ export class Sidebar {
 
   openBroadcast() {
     this.router.navigate(['/broadcast']);
+  }
+
+  openDraftMessages() {
+    this.router.navigate(['/draft-messages']);
   }
 
   openSendBroadcast() {
